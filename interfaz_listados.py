@@ -8,6 +8,7 @@ from db_conexion import ConexionBD
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from datetime import date
+from plantilla_pdf import ImprentaPDF  # Importamos la plantilla para el membrete y formato PDF
 
 class VisorListados:
     """
@@ -51,84 +52,41 @@ class VisorListados:
                     tree.insert("", "end", values=row)
             finally: db.cerrar()
 
-    def imprimir_listado(self, tree, titulo_reporte, encabezados, posiciones_x):
+    # IMPORTANTE: Arriba en tu archivo debes importar la nueva herramienta
+    from plantilla_pdf import ImprentaPDF 
+
+    def imprimir_listado(self, tree, titulo_reporte, encabezados):
         """
-        Esta función es la 'Impresora Mágica'.
-        Crea un archivo PDF con los datos que se ven en la tabla.
-        
-        Recibe:
-        - tree: La tabla con los datos.
-        - titulo_reporte: El título grande del PDF.
-        - encabezados: Los nombres de las columnas (Ej: "Nombre", "Cédula").
-        - posiciones_x: Dónde dibujar cada columna (coordenadas numéricas).
+        Envía los datos de la tabla visual a la Imprenta Central.
+        Fíjate que ya no necesitamos mandar posiciones_x.
         """
         if not tree.get_children():
             messagebox.showwarning("Vacío", "No hay nada que imprimir aquí.")
             return
 
-        # Preguntamos dónde guardar el archivo
         ruta = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF", "*.pdf")],
                                             title=f"Guardar {titulo_reporte}",
                                             initialfile=f"{titulo_reporte.replace(' ', '_')}.pdf")
-        if not ruta: return # Si el usuario cancela, no hacemos nada
+        if not ruta: return
 
         try:
-            # Preparamos el lienzo en blanco (Hoja Carta)
-            c = canvas.Canvas(ruta, pagesize=letter)
-            ancho, alto = letter # Tamaño de la hoja
-            y = alto - 50 # Empezamos a escribir desde arriba (eje Y)
-            
-            # --- 1. DIBUJAR EL TÍTULO ---
-            c.setFont("Helvetica-Bold", 14)
-            c.drawCentredString(ancho / 2, y, titulo_reporte) # Centrado
-            y -= 20
-            
-            c.setFont("Helvetica", 9)
-            fecha_hoy = date.today().strftime('%d/%m/%Y')
-            c.drawCentredString(ancho / 2, y, f"Fecha de emisión: {fecha_hoy}")
-            y -= 30
-            
-            # --- 2. DIBUJAR LOS ENCABEZADOS DE LAS COLUMNAS ---
-            c.setFont("Helvetica-Bold", 8)
-            for i, texto in enumerate(encabezados):
-                # Usamos la lista 'posiciones_x' para saber dónde va cada palabra
-                c.drawString(posiciones_x[i], y, texto)
-            
-            y -= 10
-            c.line(20, y, 590, y) # Dibujamos una línea separadora
-            y -= 20
-            
-            # --- 3. DIBUJAR LOS DATOS ---
-            c.setFont("Helvetica", 8)
-            
-            # Recorremos cada fila de la tabla visual
+            # 1. Extraemos todos los datos de la tabla visual y los guardamos en una lista
+            datos_para_pdf = []
             for item in tree.get_children():
-                # Si se acaba la hoja, creamos una nueva
-                if y < 50: 
-                    c.showPage() # Página nueva
-                    y = alto - 50 # Volvemos arriba
-                    c.setFont("Helvetica", 8)
-                
-                # Sacamos los valores de la fila
+                # Extraemos los valores de la fila
                 valores = tree.item(item)['values']
                 
-                for i, valor in enumerate(valores):
-                    texto = str(valor)
-                    # Si el texto es muy largo, lo cortamos y ponemos ".."
-                    if len(texto) > 20: texto = texto[:18] + ".."
-                    
-                    # Dibujamos el texto en su columna correspondiente
-                    if i < len(posiciones_x):
-                        c.drawString(posiciones_x[i], y, texto)
-                
-                y -= 15 # Bajamos un renglón
+                # Convertimos todo a texto simple para que la tabla lo procese bien
+                fila_texto = [str(valor) for valor in valores]
+                datos_para_pdf.append(fila_texto)
             
-            c.save() # ¡Guardar PDF!
-            messagebox.showinfo("¡Listo!", "Tu documento PDF se ha creado exitosamente.")
+            # 2. Le mandamos el trabajo a la Imprenta Central
+            ImprentaPDF.generar_reporte_tabla(ruta, titulo_reporte, encabezados, datos_para_pdf)
+            
+            messagebox.showinfo("¡Listo!", "Tu documento PDF ha sido generado con la plantilla oficial.")
             
         except Exception as e:
             messagebox.showerror("Error al crear PDF", f"Algo falló: {str(e)}")
-
     # -------------------------------------------------------------------------
     # PESTAÑA 1: ALUMNOS
     # -------------------------------------------------------------------------
@@ -167,7 +125,7 @@ class VisorListados:
         # Botones de Acción
         tk.Button(f_top, text="🔄 Actualizar Tabla", command=lambda: self.cargar_tabla(tree, sql)).pack(side="left", padx=5)
         tk.Button(f_top, text="🖨️ Imprimir Listado", bg="#c0392b", fg="white",
-                  command=lambda: self.imprimir_listado(tree, "LISTADO GENERAL DE ALUMNOS", headers_pdf, pos_x_pdf)).pack(side="left", padx=5)
+                  command=lambda: self.imprimir_listado(tree, "LISTADO GENERAL DE ALUMNOS", headers_pdf)).pack(side="left", padx=5)
 
         # Cargar datos al iniciar
         self.cargar_tabla(tree, sql)
@@ -197,7 +155,7 @@ class VisorListados:
 
         tk.Button(f_top, text="🔄 Actualizar Tabla", command=lambda: self.cargar_tabla(tree, sql)).pack(side="left", padx=5)
         tk.Button(f_top, text="🖨️ Imprimir Listado", bg="#c0392b", fg="white",
-                  command=lambda: self.imprimir_listado(tree, "LISTADO GENERAL DE MATERIAS", headers_pdf, pos_x_pdf)).pack(side="left", padx=5)
+                  command=lambda: self.imprimir_listado(tree, "LISTADO GENERAL DE MATERIAS", headers_pdf)).pack(side="left", padx=5)
         self.cargar_tabla(tree, sql)
 
     # -------------------------------------------------------------------------
@@ -222,7 +180,7 @@ class VisorListados:
 
         tk.Button(f_top, text="🔄 Actualizar Tabla", command=lambda: self.cargar_tabla(tree, sql)).pack(side="left", padx=5)
         tk.Button(f_top, text="🖨️ Imprimir Nómina", bg="#c0392b", fg="white",
-                  command=lambda: self.imprimir_listado(tree, "NOMINA DE PROFESORES", headers_pdf, pos_x_pdf)).pack(side="left", padx=5)
+                  command=lambda: self.imprimir_listado(tree, "NOMINA DE PROFESORES", headers_pdf)).pack(side="left", padx=5)
         self.cargar_tabla(tree, sql)
 
 # Punto de entrada para probar este archivo
