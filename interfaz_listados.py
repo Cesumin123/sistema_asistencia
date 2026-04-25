@@ -2,11 +2,6 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import sqlite3 
 from db_conexion import ConexionBD
-
-# Librerías para crear el PDF (ReportLab)
-# Si no tienes esto instalado, recuerda ejecutar: pip install reportlab
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
 from datetime import date
 from plantilla_pdf import ImprentaPDF  # Importamos la plantilla para el membrete y formato PDF
 
@@ -51,9 +46,6 @@ class VisorListados:
                 for row in cursor.fetchall():
                     tree.insert("", "end", values=row)
             finally: db.cerrar()
-
-    # IMPORTANTE: Arriba en tu archivo debes importar la nueva herramienta
-    from plantilla_pdf import ImprentaPDF 
 
     def imprimir_listado(self, tree, titulo_reporte, encabezados):
         """
