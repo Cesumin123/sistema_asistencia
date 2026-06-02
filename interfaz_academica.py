@@ -3,6 +3,7 @@ from tkinter import ttk, messagebox
 import sqlite3 
 import string
 from db_conexion import ConexionBD
+from plantilla_pdf import ImprentaPDF  # Importamos la plantilla para el membrete y formato PDF
 
 class GestorAcademico:
     """

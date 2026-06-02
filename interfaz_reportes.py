@@ -2,10 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import sqlite3
 from db_conexion import ConexionBD
-
-# Librerías para PDF
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
+from plantilla_pdf import ImprentaPDF  # Importamos la plantilla para el membrete y formato PDF 
 from datetime import date
 from tkcalendar import DateEntry 
 
@@ -155,102 +152,61 @@ class GestorReportes:
         if not ced: return
         self.ejecutar_busqueda(" WHERE A.ID_ESTUDIANTE LIKE ? ORDER BY A.FECHA DESC", (f"%{ced}%",), "ALUMNO", ced)
 
-    # -------------------------------------------------------------------------
-    # GENERADOR DE PDF
+   # -------------------------------------------------------------------------
+    # GENERADOR DE PDF (Refactorizado para Integración con ImprentaPDF)
     # -------------------------------------------------------------------------
     def generar_pdf(self):
+        # 1. Validación de Estado Inicial:
+        # Se verifica si la estructura de datos subyacente del Treeview contiene elementos.
+        # Si la tupla devuelta por get_children() está vacía, se interrumpe la ejecución.
         if not self.tree.get_children():
             messagebox.showwarning("Vacío", "Primero haz una búsqueda.")
             return
 
+        # 2. Inicialización de E/S (Input/Output):
+        # Se define el string base para el nombre del archivo utilizando el contexto actual de búsqueda.
         nombre_archivo = f"Reporte_{self.contexto_actual}.pdf"
+        # Se invoca el diálogo del sistema operativo para obtener la ruta absoluta de destino.
         ruta = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF", "*.pdf")], initialfile=nombre_archivo)
         
-        if not ruta: return
+        if not ruta: return # Terminación temprana si el usuario cancela la operación de guardado.
         
         try:
-            c = canvas.Canvas(ruta, pagesize=letter)
-            ancho, alto = letter
-            y = alto - 50 
+            # 3. Extracción y Transformación de Datos:
+            # Se inicializa una lista vacía que actuará como la matriz principal de datos para ReportLab.
+            datos_para_pdf = []
             
-            # 1. EL MEMBRETE (Texto a la izquierda)
-            c.setFont("Helvetica-Bold", 9)
-            # Nos posicionamos en X=40 (margen izquierdo) y vamos bajando en Y
-            c.drawString(40, alto - 40, "República Bolivariana de Venezuela")
-            c.drawString(40, alto - 55, "Ministerio del Poder Popular para la Educación")
-            c.drawString(40, alto - 70, "Complejo Educativo 'Colinas del Llano'")
-            
-            # 2. EL LOGO (Sello a la derecha)
-            try:
-                # X = ancho total menos 100 (para que no se salga de la hoja)
-                # Y = alto menos 90 (alineado con los textos)
-                c.drawImage("LOGOLICEO.png", ancho - 100, alto - 90, width=60, height=60, mask='auto')
-            except Exception:
-                # Si  no encuentra la foto "LOGOLICEO.png", ignoramos el error 
-                # para que el PDF se siga generando aunque no tenga logo.
-                pass
-            
-            # 3. AJUSTE DE ESPACIO
-            # Como ya ocupamos la parte de arriba con el membrete, tenemos que decirle
-            # al programa que empiece a escribir el reporte un poco más abajo.
-            
-            y = alto - 120
-
-            # Títulos
-            c.setFont("Helvetica-Bold", 14)
-            c.drawCentredString(ancho/2, y, f"REPORTE: {self.contexto_actual} - {self.info_contexto}")
-            y -= 20
-            c.setFont("Helvetica", 9)
-            c.drawCentredString(ancho/2, y, f"Generado el: {date.today()}")
-            y -= 30
-
-            # Encabezados Tabla
-            headers = ["Fecha", "Cédula", "Materia", "Estudiante", "ST", "Justificación"]
-            x_pos = [30, 90, 160, 270, 440, 470] 
-            
-            c.setFont("Helvetica-Bold", 9)
-            for i, h in enumerate(headers): c.drawString(x_pos[i], y, h)
-            y -= 10; c.line(30, y, 580, y); y -= 20
-            
-            # Datos
-            c.setFont("Helvetica", 8)
+            # Se itera sobre los identificadores (IIDs) de los nodos del Treeview.
             for item in self.tree.get_children():
-                if y < 120: 
-                    c.showPage(); y = alto - 50; c.setFont("Helvetica", 8)
-                
+                # Extracción de la tupla de valores correspondientes a la fila actual.
                 vals = self.tree.item(item)['values']
-                for i, v in enumerate(vals):
-                    txt = str(v)
-                    # Cortar textos largos
-                    limites = [12, 12, 20, 30, 2, 25] 
-                    if i < len(limites) and len(txt) > limites[i]: 
-                        txt = txt[:limites[i]-2] + ".."
-                    
-                    if i < len(x_pos):
-                        c.drawString(x_pos[i], y, txt)
-                y -= 15
+                
+                # Transformación de tipos: Se aplica casting a 'str' a cada elemento iterado de 'vals'
+                # para garantizar la serialización correcta del texto en el objeto Table de ReportLab.
+                fila = [str(v) for v in vals] 
+                
+                # Inserción de la fila procesada en la matriz principal.
+                datos_para_pdf.append(fila)
+            
+            # 4. Definición de la Cabecera de Datos:
+            # Se define estáticamente la primera fila de la tabla que contendrá los metadatos de las columnas.
+            encabezados = ["Fecha", "Cédula", "Materia", "Estudiante", "ST", "Justificación"]
 
-            # --- Resumen Estadístico al final ---
-            y -= 20; c.line(30, y, 580, y); y -= 20
-            c.setFont("Helvetica-Bold", 10)
-            c.drawString(30, y, "RESUMEN ESTADÍSTICO:")
-            y -= 20
+            # 5. Generación Dinámica del Título:
+            # Se construye la cadena de texto para el título del reporte basándose en las variables de estado de la clase.
+            titulo_dinamico = f"REPORTE: {self.contexto_actual} - {self.info_contexto}"
             
-            stats = self.obtener_estadisticas_pdf()
+            # 6. Delegación de la Generación del Documento:
+            # Se invoca al método estático de la clase externa ImprentaPDF.
+            # Se transfiere la responsabilidad de la renderización gráfica (coordenadas, bordes, paginación)
+            # al motor Platypus configurado dentro de dicha clase.
+            ImprentaPDF.generar_reporte_tabla(ruta, titulo_dinamico, encabezados, datos_para_pdf)
             
-            c.setFont("Helvetica", 9)
-            # Dibujamos los contadores
-            # M_P = Masculino Presente, F_A = Femenino Ausente, etc.
-            t1 = f"• VARONES -> Presentes: {stats.get('M_P',0)} | Ausentes: {stats.get('M_A',0)} | Justificados: {stats.get('M_J',0)}"
-            c.drawString(40, y, t1)
-            y -= 15
-            t2 = f"• HEMBRAS -> Presentes: {stats.get('F_P',0)} | Ausentes: {stats.get('F_A',0)} | Justificados: {stats.get('F_J',0)}"
-            c.drawString(40, y, t2)
-            
-            c.save()
-            messagebox.showinfo("Éxito", "Reporte PDF guardado.")
+            # 7. Confirmación de Éxito:
+            messagebox.showinfo("Éxito", "Reporte PDF generado exitosamente a través de la plantilla central.")
 
         except Exception as e:
+            # Captura de excepciones generales (I/O, permisos, o errores de ReportLab) durante el proceso.
             messagebox.showerror("Error PDF", str(e))
 
     def obtener_estadisticas_pdf(self):
