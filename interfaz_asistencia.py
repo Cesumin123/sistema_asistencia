@@ -23,7 +23,7 @@ class GestorAsistencia:
         self.root_selector.title("Paso 1: Seleccionar Clase")
         self.root_selector.geometry("500x350")
         # Esta instrucción le dice a la ventana que se expanda al máximo al abrirse
-        self.root.state('zoomed')
+        self.root_selector.state('zoomed')
         
         # Memoria para las excusas médicas
         self.justificaciones_temp = {} 
