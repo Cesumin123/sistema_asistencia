@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from dominio.profesor import Profesor
 from adaptadores.ui.utilidades_ui import AyudaVisual, enfocar_siguiente
+from PIL import Image, ImageTk
 
 class GestorProfesoresUI:
     """
@@ -24,7 +25,27 @@ class GestorProfesoresUI:
             widget.index(pos)
 
     def crear_tab(self):
-        tab = tk.Frame(self.notebook, bg="#e8f8f5")
+        tab = tk.Frame(self.notebook, bg="#e8f8f5") 
+        # agregamos imagen de fondo al tab
+        # --- CÓDIGO DE FONDO ---
+        try:
+            # 1. Abrimos la imagen original
+            imagen_original = Image.open("LOGOLICEO.png")
+            
+            # 2. La redimensionamos al tamaño aproximado de tu ventana
+            imagen_redimensionada = imagen_original.resize((600, 400))
+            
+            # 3. La convertimos para que Tkinter la entienda
+            self.img_fondo_tk = ImageTk.PhotoImage(imagen_redimensionada)
+            
+            # 4. La ponemos en un Label sin bordes
+            lbl_fondo = tk.Label(tab, image=self.img_fondo_tk, bd=0)
+            
+            # 5. El truco maestro: .place() la pega al fondo y la estira
+            lbl_fondo.place(x=0, y=0, relwidth=1, relheight=1)
+        except Exception as e:
+            print(f"No se pudo cargar el fondo: {e}")
+
         self.notebook.add(tab, text="  👨‍🏫  REGISTRAR PROFESOR  ")
         
         frame = tk.Frame(tab, bg="#e8f8f5"); frame.pack(pady=30)
