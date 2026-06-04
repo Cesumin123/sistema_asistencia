@@ -4,9 +4,9 @@ class Profesor:
     """
     Entidad pura del dominio. Solo representa lo que es un Profesor.
     """
-    def __init__(self, cedula: str, nombre_completo: str, id_profesor: int = None,
-                  estado_activo: int = 1
-                 ):
+    def __init__(self, cedula: str, nombre_completo: str, 
+                 id_profesor: int = None, estado_activo: int = 1
+ ):
         self.id_profesor = id_profesor
         self.cedula = cedula
         self.nombre_completo = nombre_completo
