@@ -14,7 +14,8 @@ class GestorProfesoresUI:
         self.notebook = parent_notebook
         self.repositorio = repositorio_profesor
         self.crear_tab()
-
+        # ampliamos la ventana al maximo para que se vea el fondo completo
+        self.notebook.master.state('zoomed')
     def convertir_mayus(self, event):
         widget = event.widget
         texto = widget.get()
@@ -50,8 +51,8 @@ class GestorProfesoresUI:
         
         frame = tk.Frame(tab, bg="#e8f8f5"); frame.pack(pady=30)
         
-        tk.Label(frame, text="Cédula de Identidad:", bg="#e8f8f5", font=("Arial", 10)).pack()
-        f_ced = tk.Frame(frame, bg="#e8f8f5"); f_ced.pack()
+        tk.Label(frame, text="Cédula de Identidad:", bg="#ffffff", font=("Arial", 10)).pack()
+        f_ced = tk.Frame(frame, bg="#fff3f3"); f_ced.pack()
         
         self.combo_nac_prof = ttk.Combobox(f_ced, values=["V", "E", "P"], width=3, state="readonly")
         self.combo_nac_prof.pack(side="left"); self.combo_nac_prof.current(0)
