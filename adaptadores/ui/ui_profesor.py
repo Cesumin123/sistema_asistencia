@@ -31,7 +31,11 @@ class GestorProfesoresUI:
         self.crear_tab()
         
         # Maximiza la ventana principal para asegurar la correcta visualización del fondo
-        self.notebook.master.state('zoomed')
+        # --- MAXIMIZAR VENTANA MULTIPLATAFORMA ---
+        try:
+            self.notebook.master.state('zoomed') # Intento para Windows
+        except tk.TclError:
+            self.notebook.master.attributes('-zoomed', True) # Intento para Linux/Lubuntu
 
     def convertir_mayus(self, event):
         """
