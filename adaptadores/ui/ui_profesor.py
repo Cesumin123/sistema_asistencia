@@ -35,7 +35,7 @@ class GestorProfesoresUI:
         try:
             self.notebook.master.state('zoomed') # Intento para Windows
         except tk.TclError:
-            self.notebook.master.attributes('-zoomed', True) # Intento para Linux/Lubuntu
+            self.notebook.master.attributes('-zoomed', True) # Intento para Linux/
 
     def convertir_mayus(self, event):
         """
@@ -73,7 +73,7 @@ class GestorProfesoresUI:
             
             # Label posicionado de forma absoluta para actuar como fondo
             lbl_fondo = tk.Label(tab, image=self.img_fondo_tk, bd=0)
-            lbl_fondo.place(x=0, y=0, relwidth=1, relheight=1)
+            lbl_fondo.place(x=0, y=50, relwidth=1, relheight=1)
         except Exception as e:
             # En caso de error de carga, se registra en consola pero no interrumpe el flujo
             print(f"Error al cargar recurso gráfico: {e}")
@@ -87,7 +87,7 @@ class GestorProfesoresUI:
         
         # --- SECCIÓN: CÉDULA DE IDENTIDAD ---
         tk.Label(frame, text="Cédula de Identidad:", bg="#ffffff", font=("Arial", 10)).pack()
-        f_ced = tk.Frame(frame, bg="#fff3f3")
+        f_ced = tk.Frame(frame, bg="#e8f8f5")
         f_ced.pack()
         
         # Selector de nacionalidad (Prefijo de cédula)
