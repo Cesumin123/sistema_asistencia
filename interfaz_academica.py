@@ -1,233 +1,307 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-import sqlite3 
-import string
-from db_conexion import ConexionBD
-from plantilla_pdf import ImprentaPDF  # Importamos la plantilla para el membrete y formato PDF
+from db_conexion import ConexionBD  # Importa la clase de conexión a la base de datos creada anteriormente.
+import sqlite3  # Importa la librería para manejar la base de datos SQLite.
 
 class GestorAcademico:
     """
-    Módulo para configurar la Escuela.
-    Aquí es donde el Director dice: 
-    "El profesor Pedro va a dar Matemáticas en 1er año A, B y C".
+    Módulo para la gestión de profesores y la asignación de materias.
+    Permite registrar docentes, aplicar borrado lógico y asignar cargas académicas.
     """
 
     def __init__(self):
-        # Creamos la ventana flotante
-        self.root = tk.Toplevel()
-        self.root.title("Gestión Académica Integral")
-        self.root.geometry("650x600")
-        # Esta instrucción le dice a la ventana que se expanda al máximo al abrirse
-        self.root.state('zoomed')
+        # --- CONFIGURACIÓN DE LA VENTANA PRINCIPAL ---
+        self.root = tk.Toplevel()                           # Crea una ventana secundaria flotante.
+        self.root.title("Gestión Académica Integral")       # Título de la ventana.
+        self.root.geometry("650x600")                       # Dimensiones iniciales.
+        self.root.state('zoomed')                           # Maximiza la ventana al abrirse.
         
-        # Creamos las pestañas (Como en un navegador web)
-        self.notebook = ttk.Notebook(self.root)
-        self.notebook.pack(pady=10, fill="both", expand=True)
+        # --- CREACIÓN DEL SISTEMA DE PESTAÑAS ---
+        self.notebook = ttk.Notebook(self.root)             # Contenedor para las múltiples pestañas.
+        self.notebook.pack(pady=10, fill="both", expand=True) # Expande el contenedor en la ventana.
         
-        # Pestaña 1: Profesores
+        # Construye la primera pestaña: Gestión de profesores.
         self.crear_tab_profesores()
-        # Pestaña 2: Materias
+        # Construye la segunda pestaña: Asignación de materias.
         self.crear_tab_materias()
 
     def convertir_mayus(self, event):
-        """Truco para que todo lo que escribas se ponga en MAYÚSCULAS solo."""
-        widget = event.widget
-        texto = widget.get()
-        if texto != texto.upper():
-            pos = widget.index(tk.INSERT)
-            widget.delete(0, tk.END)
-            widget.insert(0, texto.upper())
-            widget.index(pos)
+        """
+        Evento que convierte el texto ingresado en un campo a mayúsculas en tiempo real.
+        Evita inconsistencias en la base de datos.
+        """
+        widget = event.widget                               # Obtiene el campo de texto que activó el evento.
+        texto = widget.get()                                # Obtiene el texto actual del campo.
+        widget.delete(0, tk.END)                            # Borra el contenido actual.
+        widget.insert(0, texto.upper())                     # Inserta el mismo texto convertido a mayúsculas.
 
-    # =========================================================================
-    # PARTE 1: LOS PROFESORES
-    # =========================================================================
-    
+    # ==========================================
+    # MÓDULO DE PROFESORES
+    # ==========================================
+
     def crear_tab_profesores(self):
-        """Diseña la pantalla para registrar profes."""
-        tab = tk.Frame(self.notebook, bg="#e8f8f5")
-        self.notebook.add(tab, text="  👨‍🏫  REGISTRAR PROFESOR  ")
-        
-        frame = tk.Frame(tab, bg="#e8f8f5"); frame.pack(pady=30)
-        
-        # --- Cédula ---
-        tk.Label(frame, text="Cédula de Identidad:", bg="#e8f8f5", font=("Arial", 10)).pack()
-        f_ced = tk.Frame(frame, bg="#e8f8f5"); f_ced.pack()
-        
-        self.combo_nac_prof = ttk.Combobox(f_ced, values=["V", "E", "P"], width=3, state="readonly")
-        self.combo_nac_prof.pack(side="left"); self.combo_nac_prof.current(0)
-        
-        self.entry_ced_prof = tk.Entry(f_ced, width=15)
-        self.entry_ced_prof.pack(side="left", padx=5)
-        
-        # --- Nombre ---
-        tk.Label(frame, text="Nombre Completo:", bg="#e8f8f5", font=("Arial", 10)).pack(pady=(15, 0))
-        self.entry_nom_prof = tk.Entry(frame, width=35)
-        self.entry_nom_prof.pack()
-        self.entry_nom_prof.bind("<KeyRelease>", self.convertir_mayus)
-        
-        # --- Botón Guardar ---
-        tk.Button(frame, text="GUARDAR PROFESOR", bg="#16a085", fg="white", font=("Arial", 10, "bold"),
-                  command=self.guardar_profesor).pack(pady=25)
+        """Construye la interfaz visual para registrar y listar profesores."""
+        self.tab_prof = ttk.Frame(self.notebook)            # Crea el contenedor de la pestaña.
+        self.notebook.add(self.tab_prof, text="Profesores") # Añade el contenedor al notebook con un título.
 
-    def guardar_profesor(self):
-        """Guarda al profe en la base de datos."""
-        nombre = self.entry_nom_prof.get().strip().upper()
-        ced_num = self.entry_ced_prof.get().strip()
-        cedula = f"{self.combo_nac_prof.get()}-{ced_num}"
+        # --- FORMULARIO DE REGISTRO ---
+        frame_form = tk.LabelFrame(self.tab_prof, text="Registrar Nuevo Profesor")
+        frame_form.pack(padx=10, pady=10, fill="x")         # fill="x" hace que ocupe todo el ancho.
+
+        tk.Label(frame_form, text="Cédula:").grid(row=0, column=0, padx=5, pady=5)
+        self.entry_cedula = tk.Entry(frame_form)
+        self.entry_cedula.grid(row=0, column=1, padx=5, pady=5)
         
-        if not ced_num or not nombre:
-            messagebox.showwarning("Faltan datos", "Escribe la cédula y el nombre.")
-            return
+        tk.Label(frame_form, text="Nombre Completo:").grid(row=0, column=2, padx=5, pady=5)
+        self.entry_nombre = tk.Entry(frame_form, width=40)
+        self.entry_nombre.grid(row=0, column=3, padx=5, pady=5)
+        
+        # Vincula el evento de escritura (KeyRelease) a la función de mayúsculas.
+        self.entry_nombre.bind("<KeyRelease>", self.convertir_mayus)
+
+        btn_guardar = tk.Button(frame_form, text="Guardar", bg="green", fg="white", command=self.guardar_profesor)
+        btn_guardar.grid(row=0, column=4, padx=10, pady=5)
+
+        # --- TABLA DE DATOS (TREEVIEW) ---
+        # Se definen las columnas que mostrará la tabla.
+        columnas = ("ID", "Cédula", "Nombre", "Estado")
+        self.tree_prof = ttk.Treeview(self.tab_prof, columns=columnas, show="headings")
+        
+        # Configura los encabezados y anchos de columna.
+        self.tree_prof.heading("ID", text="ID")
+        self.tree_prof.column("ID", width=30)
+        self.tree_prof.heading("Cédula", text="Cédula")
+        self.tree_prof.column("Cédula", width=100)
+        self.tree_prof.heading("Nombre", text="Nombre")
+        self.tree_prof.column("Nombre", width=300)
+        self.tree_prof.heading("Estado", text="Estado")
+        self.tree_prof.column("Estado", width=80)
+        
+        self.tree_prof.pack(padx=10, pady=10, fill="both", expand=True)
+
+        # --- BOTÓN DE BORRADO LÓGICO ---
+        btn_eliminar = tk.Button(self.tab_prof, text="Desactivar Profesor", bg="red", fg="white", command=self.eliminar_profesor)
+        btn_eliminar.pack(pady=5)
+
+        # Llama a la función para llenar la tabla al abrir la ventana.
+        self.cargar_profesores()
+
+    def cargar_profesores(self):
+        """
+        Consulta la base de datos y llena el Treeview de profesores.
+        MODIFICACIÓN: Solo selecciona registros con ESTADO = 'ACTIVO'.
+        """
+        # Limpia las filas existentes en la tabla antes de cargar nuevas.
+        for fila in self.tree_prof.get_children():
+            self.tree_prof.delete(fila)
 
         db = ConexionBD()
         conn = db.conectar()
         if conn:
             try:
                 cursor = conn.cursor()
-                # SQLITE: Usamos '?'
-                sql = "INSERT INTO TBL_PROFESORES (NOMBRE_COMPLETO, CEDULA) VALUES (?, ?)"
-                cursor.execute(sql, (nombre, cedula))
-                conn.commit()
-                messagebox.showinfo("Listo", f"Profesor {nombre} registrado.")
-                self.root.destroy() # Cerramos para volver al menú
+                # La cláusula WHERE ESTADO = 'ACTIVO' oculta a los profesores "eliminados".
+                cursor.execute("SELECT ID_PROFESOR, CEDULA, NOMBRE_COMPLETO, ESTADO FROM TBL_PROFESORES WHERE ESTADO = 'ACTIVO'")
+                profesores = cursor.fetchall()
                 
-            except sqlite3.IntegrityError: 
-                messagebox.showerror("Duplicado", "Esa cédula ya existe.")
-            except Exception as err:
-                messagebox.showerror("Error", str(err))
+                # Inserta cada registro obtenido en el Treeview visual.
+                for prof in profesores:
+                    self.tree_prof.insert("", "end", values=prof)
+            except Exception as e:
+                messagebox.showerror("Error", f"Error al cargar datos: {e}")
             finally:
                 db.cerrar()
 
-    # =========================================================================
-    # PARTE 2: LAS MATERIAS (Aquí está la magia)
-    # =========================================================================
+    def guardar_profesor(self):
+        """Inserta un nuevo profesor en la base de datos."""
+        cedula = self.entry_cedula.get().strip()            # .strip() elimina espacios en blanco accidentales.
+        nombre = self.entry_nombre.get().strip()
+
+        # Validación básica para asegurar que no falten datos.
+        if not cedula or not nombre:
+            messagebox.showwarning("Advertencia", "Todos los campos son obligatorios.")
+            return
+
+        db = ConexionBD()
+        conn = db.conectar()
+        if conn:
+            try:
+                cursor = conn.cursor()
+                # Inserta el registro. La base de datos asignará 'ACTIVO' automáticamente por defecto.
+                cursor.execute("INSERT INTO TBL_PROFESORES (CEDULA, NOMBRE_COMPLETO) VALUES (?, ?)", (cedula, nombre))
+                conn.commit()                               # Confirma los cambios en SQLite.
+                messagebox.showinfo("Éxito", "Profesor registrado correctamente.")
+                
+                # Limpia los campos de texto tras guardar.
+                self.entry_cedula.delete(0, tk.END)
+                self.entry_nombre.delete(0, tk.END)
+                
+                # Recarga la tabla para mostrar al nuevo profesor.
+                self.cargar_profesores()
+            except sqlite3.IntegrityError:
+                messagebox.showerror("Error", "Ya existe un profesor con esa cédula.")
+            except Exception as e:
+                messagebox.showerror("Error", f"Ocurrió un problema: {e}")
+            finally:
+                db.cerrar()
+
+    def eliminar_profesor(self):
+        """
+        Ejecuta el Borrado Lógico del profesor seleccionado.
+        MODIFICACIÓN: Cambia UPDATE en lugar de DELETE.
+        """
+        seleccion = self.tree_prof.selection()              # Obtiene la fila seleccionada en el Treeview.
+        if not seleccion:
+            messagebox.showwarning("Advertencia", "Seleccione un profesor de la lista.")
+            return
+
+        # Pide confirmación al usuario antes de proceder.
+        confirmacion = messagebox.askyesno("Confirmar", "¿Está seguro de eliminar este profesor del listado principal?")
+        if not confirmacion:
+            return
+
+        # Extrae los datos de la fila seleccionada.
+        item = self.tree_prof.item(seleccion[0])
+        id_profesor = item['values'][0]                     # El ID_PROFESOR está en la primera columna (índice 0).
+
+        db = ConexionBD()
+        conn = db.conectar()
+        if conn:
+            try:
+                cursor = conn.cursor()
+                # El borrado lógico: Actualiza el estado a INACTIVO en lugar de destruir el registro.
+                cursor.execute("UPDATE TBL_PROFESORES SET ESTADO = 'INACTIVO' WHERE ID_PROFESOR = ?", (id_profesor,))
+                conn.commit()
+                messagebox.showinfo("Éxito", "Profesor eliminado lógicamente.")
+                
+                # Refresca la tabla. Como cargamos solo 'ACTIVO', este profesor ya no aparecerá.
+                self.cargar_profesores()
+            except Exception as e:
+                messagebox.showerror("Error", f"Ocurrió un problema al eliminar: {e}")
+            finally:
+                db.cerrar()
+
+    # ==========================================
+    # MÓDULO DE MATERIAS
+    # ==========================================
 
     def crear_tab_materias(self):
-        """Diseña la pantalla para crear materias masivamente."""
-        tab = tk.Frame(self.notebook, bg="#f4ecf7")
-        self.notebook.add(tab, text="  📚  CREAR MATERIA  ")
+        """Construye la interfaz para asignar materias a profesores."""
+        self.tab_mat = ttk.Frame(self.notebook)
+        self.notebook.add(self.tab_mat, text="Asignar Materias")
         
-        frame = tk.Frame(tab, bg="#f4ecf7"); frame.pack(pady=20)
-        
-        # --- Nombre Materia ---
-        tk.Label(frame, text="Nombre de la Materia (Ej: MATEMÁTICA):", bg="#f4ecf7").pack()
-        self.entry_materia = tk.Entry(frame, width=35)
-        self.entry_materia.pack()
-        self.entry_materia.bind("<KeyRelease>", self.convertir_mayus)
-        
-        # --- Elegir Profesor ---
-        tk.Label(frame, text="Profesor Encargado:", bg="#f4ecf7").pack(pady=(10,0))
-        self.combo_profesores = ttk.Combobox(frame, width=40, state="readonly")
-        self.combo_profesores.pack()
-        self.cargar_lista_profesores() 
-        
-        # --- Elegir Año ---
-        tk.Label(frame, text="Año Escolar (1-5):", bg="#f4ecf7").pack(pady=(10,0))
-        self.entry_grado_mat = tk.Entry(frame, width=10, justify="center")
-        self.entry_grado_mat.pack()
-        
-        # --- Elegir Secciones (Multiselección) ---
-        tk.Label(frame, text="Seleccione Secciones (Click + Ctrl para varias):", 
-                 bg="#f4ecf7", fg="#8e44ad", font=("bold")).pack(pady=(15,5))
-        
-        f_list = tk.Frame(frame); f_list.pack()
-        scroll = tk.Scrollbar(f_list)
-        scroll.pack(side="right", fill="y")
-        
-        # Listbox es una lista donde puedes seleccionar varias cosas a la vez
-        self.listbox_secciones = tk.Listbox(f_list, selectmode="multiple", height=5, 
-                                            exportselection=False, yscrollcommand=scroll.set)
-        # Llenamos con letras A, B, C, D...
-        for letra in string.ascii_uppercase: 
-            self.listbox_secciones.insert(tk.END, letra)
-            
-        self.listbox_secciones.pack(side="left")
-        scroll.config(command=self.listbox_secciones.yview)
-        
-        # --- Botón Crear ---
-        tk.Button(frame, text="CREAR MATERIAS", bg="#9b59b6", fg="white", font=("Arial", 10, "bold"),
-                  command=self.guardar_materia_masiva).pack(pady=20)
+        # Este frame contendrá los controles de asignación.
+        frame_form = tk.LabelFrame(self.tab_mat, text="Formulario de Asignación")
+        frame_form.pack(padx=10, pady=10, fill="both", expand=True)
 
-    def cargar_lista_profesores(self):
-        """Busca a los profes en la BD para ponerlos en la lista desplegable."""
+        tk.Label(frame_form, text="Nombre de la Materia:").grid(row=0, column=0, padx=5, pady=5, sticky="e")
+        self.entry_materia = tk.Entry(frame_form, width=30)
+        self.entry_materia.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+        self.entry_materia.bind("<KeyRelease>", self.convertir_mayus)
+
+        # Menú desplegable (Combobox) para seleccionar al profesor.
+        tk.Label(frame_form, text="Profesor:").grid(row=1, column=0, padx=5, pady=5, sticky="e")
+        self.combo_profesores = ttk.Combobox(frame_form, state="readonly", width=40)
+        self.combo_profesores.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+
+        # Menú desplegable para seleccionar el grado escolar.
+        tk.Label(frame_form, text="Grado / Año:").grid(row=2, column=0, padx=5, pady=5, sticky="e")
+        self.combo_grados = ttk.Combobox(frame_form, state="readonly", width=20)
+        self.combo_grados.grid(row=2, column=1, padx=5, pady=5, sticky="w")
+
+        # Lista múltiple (Listbox) para seleccionar varias secciones a la vez.
+        tk.Label(frame_form, text="Secciones:").grid(row=3, column=0, padx=5, pady=5, sticky="ne")
+        self.listbox_secciones = tk.Listbox(frame_form, selectmode=tk.MULTIPLE, height=5, exportselection=False)
+        self.listbox_secciones.grid(row=3, column=1, padx=5, pady=5, sticky="w")
+
+        btn_guardar_mat = tk.Button(frame_form, text="Guardar Asignaciones", bg="blue", fg="white", command=self.guardar_materia)
+        btn_guardar_mat.grid(row=4, column=0, columnspan=2, pady=15)
+
+        # Llama a las funciones que traen los datos de la base de datos para rellenar los desplegables.
+        self.cargar_listas_desplegables()
+
+    def cargar_listas_desplegables(self):
+        """Llena los Combobox de profesores y grados, y la Listbox de secciones."""
         db = ConexionBD()
         conn = db.conectar()
         if conn:
             try:
                 cursor = conn.cursor()
-                cursor.execute("SELECT ID_PROFESOR, NOMBRE_COMPLETO, CEDULA FROM TBL_PROFESORES ORDER BY NOMBRE_COMPLETO")
                 
-                # Creamos textos bonitos tipo: "15 - PEDRO PEREZ (V-123)"
-                data = [f"{row[0]} - {row[1]} ({row[2]})" for row in cursor.fetchall()]
-                self.combo_profesores['values'] = data
-                
-                # PROTECCIÓN: Si no hay profes, no intentamos seleccionar nada
-                if data: 
-                    self.combo_profesores.current(0)
-                else:
-                    self.combo_profesores.set("--- No hay profesores registrados ---")
-            finally: 
+                # Carga profesores activos.
+                cursor.execute("SELECT ID_PROFESOR, NOMBRE_COMPLETO FROM TBL_PROFESORES WHERE ESTADO = 'ACTIVO'")
+                profesores = cursor.fetchall()
+                # Formatea los datos para mostrar "ID - Nombre" en el Combobox.
+                self.combo_profesores['values'] = [f"{p[0]} - {p[1]}" for p in profesores]
+
+                # Carga grados.
+                cursor.execute("SELECT ID_GRADO, DESCRIPCION FROM TBL_GRADOS")
+                grados = cursor.fetchall()
+                self.combo_grados['values'] = [f"{g[0]} - {g[1]}" for g in grados]
+
+                # Carga secciones.
+                cursor.execute("SELECT DESCRIPCION FROM TBL_SECCIONES")
+                secciones = cursor.fetchall()
+                self.listbox_secciones.delete(0, tk.END)
+                for s in secciones:
+                    self.listbox_secciones.insert(tk.END, s[0])
+                    
+            except Exception as e:
+                print(f"Error cargando listas: {e}")
+            finally:
                 db.cerrar()
 
-    def guardar_materia_masiva(self):
-        """
-        Esta función ahorra trabajo.
-        Si eliges "Matemática", "1er Año" y seleccionas las secciones "A", "B" y "C",
-        el sistema crea las 3 materias automáticamente (Mate 1-A, Mate 1-B, Mate 1-C).
-        """
-        materia = self.entry_materia.get().strip().upper()
-        prof_txt = self.combo_profesores.get()
-        grado = self.entry_grado_mat.get().strip()
-        indices = self.listbox_secciones.curselection() # ¿Qué letras seleccionó?
-        
-        if not materia or not prof_txt or not grado:
-            messagebox.showwarning("Faltan Datos", "Debe llenar todos los campos.")
+    def guardar_materia(self):
+        """Asigna una materia a un profesor para un grado y secciones específicas."""
+        materia = self.entry_materia.get().strip()
+        prof_seleccionado = self.combo_profesores.get()
+        grado_seleccionado = self.combo_grados.get()
+        indices_secciones = self.listbox_secciones.curselection()
+
+        # Verifica que todos los campos y listas tengan una selección.
+        if not materia or not prof_seleccionado or not grado_seleccionado or not indices_secciones:
+            messagebox.showerror("Error", "Faltan datos. Complete el formulario y seleccione al menos una sección.")
             return
-        
-        if not indices:
-            messagebox.showwarning("Ojo", "Selecciona al menos una sección de la lista.")
-            return
-            
-        try:
-            # Sacamos el ID del profesor del texto "15 - PEDRO..."
-            id_prof = int(prof_txt.split(" - ")[0])
-        except:
-            messagebox.showerror("Error", "Profesor inválido.")
-            return
+
+        # Extrae los IDs de las cadenas de texto (ej. "1 - Juan Pérez" -> "1").
+        id_prof = int(prof_seleccionado.split(" - ")[0])
+        id_grado = int(grado_seleccionado.split(" - ")[0])
 
         db = ConexionBD()
         conn = db.conectar()
         if conn:
             try:
                 cursor = conn.cursor()
-                count = 0
+                contador = 0
                 
-                # Repetimos el proceso por cada sección seleccionada
-                for idx in indices:
+                # Bucle para insertar un registro por cada sección seleccionada en la Listbox.
+                for idx in indices_secciones:
                     letra = self.listbox_secciones.get(idx)
                     
-                    # 1. Buscamos el ID de la letra 'A'
-                    cursor.execute("SELECT ID_SECCION FROM TBL_SECCIONES WHERE DESCRIPCION=?", (letra,))
-                    res = cursor.fetchone()
+                    # Consulta el ID_SECCION correspondiente a la letra (ej. 'A').
+                    cursor.execute("SELECT ID_SECCION FROM TBL_SECCIONES WHERE DESCRIPCION = ?", (letra,))
+                    resultado = cursor.fetchone()
                     
-                    if res:
-                        id_sec = res[0]
-                        # 2. Creamos la materia
-                        # SQLITE: Usamos '?'
-                        sql = """INSERT INTO TBL_CLASES 
-                                 (NOMBRE_MATERIA, ID_PROFESOR, ID_GRADO, ID_SECCION) 
-                                 VALUES (?, ?, ?, ?)"""
-                        cursor.execute(sql, (materia, id_prof, grado, id_sec))
-                        count += 1
+                    if resultado:
+                        id_sec = resultado[0]
+                        # Inserta la nueva clase.
+                        sql = "INSERT INTO TBL_CLASES (NOMBRE_MATERIA, ID_PROFESOR, ID_GRADO, ID_SECCION) VALUES (?, ?, ?, ?)"
+                        cursor.execute(sql, (materia, id_prof, id_grado, id_sec))
+                        contador += 1
                 
                 conn.commit()
-                messagebox.showinfo("Éxito", f"Se creó la materia '{materia}' para {count} secciones.")
+                messagebox.showinfo("Éxito", f"Se creó la materia '{materia}' para {contador} secciones.")
+                
+                # Cierra la ventana tras asignar con éxito.
                 self.root.destroy()
             except Exception as err:
-                messagebox.showerror("Error BD", str(err))
+                messagebox.showerror("Error Base de Datos", str(err))
             finally: 
                 db.cerrar()
 
+# Bloque de ejecución principal para probar esta ventana de forma independiente.
 if __name__ == "__main__":
-    GestorAcademico()
+    root = tk.Tk()
+    root.withdraw() # Oculta la ventana raíz base de Tkinter.
+    app = GestorAcademico()
+    root.mainloop()
