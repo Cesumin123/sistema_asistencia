@@ -24,5 +24,18 @@ class SQLiteRepositorioProfesor(RepositorioProfesor):
                 self.db.cerrar()
 
     def obtener_todos(self) -> list[Profesor]:
-        # Lo implementaremos luego para cuando refactoricemos la creación de materias
-        pass
+        conn = self.db.conectar()
+        profesores = []
+        if conn:
+            try:
+                cursor = conn.cursor()
+                cursor.execute("SELECT ID_PROFESOR, NOMBRE_COMPLETO, CEDULA, ESTADO_ACTIVO FROM TBL_PROFESORES ORDER BY NOMBRE_COMPLETO")
+                rows = cursor.fetchall()
+                for r in rows:
+                    id_prof, nombre, cedula, estado = r
+                    p = Profesor(cedula=cedula, nombre_completo=nombre, id_profesor=id_prof, estado_activo=estado)
+                    profesores.append(p)
+                return profesores
+            finally:
+                self.db.cerrar()
+        return profesores

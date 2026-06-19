@@ -86,6 +86,16 @@ class GestorProfesoresUI:
         frame.pack(pady=30)
         
         # --- SECCIÓN: CÉDULA DE IDENTIDAD ---
+        tk.Label(frame, text="Cédula de Identidad:", bg="#e8f8f5", font=("Arial", 10)).pack()
+        f_ced = tk.Frame(frame, bg="#e8f8f5")
+        f_ced.pack()
+        
+        # Selector de nacionalidad (Prefijo de cédula)
+        # Marco central para organizar los controles de entrada
+        frame = tk.Frame(tab, bg="#e8f8f5")
+        frame.pack(pady=30)
+        
+        # --- SECCIÓN: CÉDULA DE IDENTIDAD ---
         tk.Label(frame, text="Cédula de Identidad:", bg="#ffffff", font=("Arial", 10)).pack()
         f_ced = tk.Frame(frame, bg="#e8f8f5")
         f_ced.pack()
@@ -95,6 +105,8 @@ class GestorProfesoresUI:
         self.combo_nac_prof.pack(side="left")
         self.combo_nac_prof.current(0)
         AyudaVisual(self.combo_nac_prof, "Seleccione la nacionalidad del profesor.")
+        #enfocamos el siguiente campo al presionar enter
+        self.combo_nac_prof.bind("<Return>", enfocar_siguiente) 
 
         # Campo numérico para la cédula
         self.entry_ced_prof = tk.Entry(f_ced, width=15)

@@ -36,12 +36,16 @@ class AyudaVisual:
         Args:
             event (tk.Event, opcional): Evento de entrada del ratón disparado por el widget.
         """
-        # Obtiene las coordenadas y dimensiones relativas del widget
-        x, y, _, _ = self.widget.bbox("insert")
+        # Intenta obtener coordenadas del cursor; no todos los widgets soportan 'insert'
+        try:
+            x, y, _, _ = self.widget.bbox("insert")
+        except Exception:
+            # Si no existe, posicionamos cerca del widget
+            x, y = 0, 0
         
         # Calcula la posición absoluta en la pantalla
-        x += self.widget.winfo_rootx() + 25
-        y += self.widget.winfo_rooty() + 25
+        x = x + self.widget.winfo_rootx() + 25
+        y = y + self.widget.winfo_rooty() + 25
         
         # Creación de una ventana de nivel superior (TopLevel) sin decoraciones de SO
         self.ventana_ayuda = tk.Toplevel(self.widget)
