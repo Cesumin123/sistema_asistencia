@@ -26,7 +26,7 @@ class GestorProfesoresUI:
             widget.index(pos)
 
     def crear_tab(self):
-        tab = tk.Frame(self.notebook, bg="#e8f8f5") 
+        tab = tk.Frame(self.notebook, bg="#ffffff") 
         # agregamos imagen de fondo al tab
         # --- CÓDIGO DE FONDO ---
         try:
@@ -43,16 +43,16 @@ class GestorProfesoresUI:
             lbl_fondo = tk.Label(tab, image=self.img_fondo_tk, bd=0)
             
             # 5. El truco maestro: .place() la pega al fondo y la estira
-            lbl_fondo.place(x=0, y=0, relwidth=1, relheight=1)
+            lbl_fondo.place(x=0, y=80, relwidth=1, relheight=1)
         except Exception as e:
             print(f"No se pudo cargar el fondo: {e}")
 
         self.notebook.add(tab, text="  👨‍🏫  REGISTRAR PROFESOR  ")
         
-        frame = tk.Frame(tab, bg="#e8f8f5"); frame.pack(pady=30)
+        frame = tk.Frame(tab, bg="#ffffff"); frame.pack(pady=30)
         
         tk.Label(frame, text="Cédula de Identidad:", bg="#ffffff", font=("Arial", 10)).pack()
-        f_ced = tk.Frame(frame, bg="#fff3f3"); f_ced.pack()
+        f_ced = tk.Frame(frame, bg="#ffffff"); f_ced.pack()
         
         self.combo_nac_prof = ttk.Combobox(f_ced, values=["V", "E", "P"], width=3, state="readonly")
         self.combo_nac_prof.pack(side="left"); self.combo_nac_prof.current(0)
@@ -68,7 +68,7 @@ class GestorProfesoresUI:
         # implementamos un tooltip para la cédula
         AyudaVisual(self.entry_ced_prof, "Ingrese solo números. Ej: 12345678")
         
-        tk.Label(frame, text="Nombre Completo:", bg="#e8f8f5", font=("Arial", 10)).pack(pady=(15, 0))
+        tk.Label(frame, text="Nombre Completo:", bg="#ffffff", font=("Arial", 10)).pack(pady=(15, 0))
         
         # caja de texto del nombre completo
         self.entry_nom_prof = tk.Entry(frame, width=35)
