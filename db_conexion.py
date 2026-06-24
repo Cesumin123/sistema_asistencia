@@ -1,6 +1,9 @@
-import sqlite3 
+#importante: Este archivo es parte de la capa de infraestructura y no debe ser modificado por los usuarios finales.
+#importación de módulos necesarios para la conexión a la base de datos y manejo de rutas
+
 import os      
 import sys
+import sqlite3 
 
 class ConexionBD:
     """
