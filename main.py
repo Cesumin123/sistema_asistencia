@@ -1,33 +1,42 @@
 import tkinter as tk
 from tkinter import ttk
 
-# Importamos la Infraestructura (Conexión y Adaptadores de Base de Datos)
 from db_conexion import ConexionBD
 from adaptadores.db.sqlite_profesor import SQLiteRepositorioProfesor
-from adaptadores.db.sqlite_clase import SQLiteRepositorioClase # NUEVO
+from adaptadores.db.sqlite_clase import SQLiteRepositorioClase
+from adaptadores.db.sqlite_usuario import SQLiteRepositorioUsuario # NUEVO
 
-# Importamos la Interfaz Visual (Adaptadores de UI)
 from adaptadores.ui.ui_profesor import GestorProfesoresUI
-from adaptadores.ui.ui_clase import GestorClasesUI # NUEVO
+from adaptadores.ui.ui_clase import GestorClasesUI
+from adaptadores.ui.ui_usuario import GestorUsuariosUI # NUEVO
+
+def abrir_panel_seguridad(root_principal, repositorio_usuario):
+    """Intenta abrir la ventana de seguridad."""
+    GestorUsuariosUI(root_principal, repositorio_usuario)
 
 def iniciar_aplicacion():
-    # 1. PREPARAMOS LA BASE DE DATOS
+    # 1. Base de datos y Repositorios
     conexion = ConexionBD()
-    repositorio_profesor = SQLiteRepositorioProfesor(conexion)
-    repositorio_clase = SQLiteRepositorioClase(conexion) # NUEVO
+    repositorio_prof = SQLiteRepositorioProfesor(conexion)
+    repositorio_clase = SQLiteRepositorioClase(conexion)
+    repositorio_user = SQLiteRepositorioUsuario(conexion) # NUEVO
 
-    # 2. PREPARAMOS LA VENTANA PRINCIPAL
+    # 2. Ventana Principal
     root = tk.Tk()
-    root.title("Gestión Académica Integral (SOLID)")
+    root.title("Sistema Escolar - Pruebas")
     root.geometry("800x600")
     
-    # Creamos el cuaderno de pestañas
+    # NUEVO: Botón de Administración General arriba
+    tk.Button(root, text="⚙️ Abrir Panel de Seguridad (Usuarios)", bg="#2c3e50", fg="white", font=("Arial", 10, "bold"),
+              command=lambda: abrir_panel_seguridad(root, repositorio_user)).pack(pady=10, fill="x", padx=20)
+
+    # 3. Cuaderno de pestañas Académicas
     notebook = ttk.Notebook(root)
     notebook.pack(pady=10, fill="both", expand=True)
 
-    # 3. CONECTAMOS TODO (Inyección de Dependencias)
-    ui_profesores = GestorProfesoresUI(notebook, repositorio_profesor)
-    ui_clases = GestorClasesUI(notebook, repositorio_clase) # NUEVO
+    # 4. Inyección de las otras UI
+    GestorProfesoresUI(notebook, repositorio_prof)
+    GestorClasesUI(notebook, repositorio_clase)
 
     root.mainloop()
 
