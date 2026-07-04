@@ -139,5 +139,5 @@ if __name__ == "__main__":
     mi_base_de_datos = ConexionBD()
     conn = mi_base_de_datos.conectar()
     if conn:
-        print("¡Excelente! La base de datos se creó y conectó correctamente con soporte para Auditoría.")
+        print(" La base de datos se creó y conectó correctamente, Dattebayo! ")
         mi_base_de_datos.cerrar()
