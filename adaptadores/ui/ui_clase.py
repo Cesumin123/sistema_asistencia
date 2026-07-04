@@ -13,6 +13,7 @@ class GestorClasesUI:
         self.notebook = parent_notebook
         self.repositorio = repositorio_clase
         self.crear_tab()
+        self.mapa_secciones = {}  # Mapa para almacenar la relación entre el índice de la Listbox y el ID de la sección
         self.cargar_datos_en_listas() # Llenamos los menús desplegables
 
     def convertir_mayus(self, event):
@@ -88,18 +89,25 @@ class GestorClasesUI:
     def cargar_datos_en_listas(self):
         """Usa el Repositorio para buscar en la BD y llena los Combobox."""
         
-        # Traemos Profesores y los formateamos como "ID - Nombre"
         profesores = self.repositorio.obtener_profesores_activos()
         self.combo_prof['values'] = [f"{p[0]} - {p[1]}" for p in profesores]
         
-        # Traemos Grados
         grados = self.repositorio.obtener_grados()
         self.combo_grado['values'] = [f"{g[0]} - {g[1]}" for g in grados]
         
-        # Traemos Secciones
+        # Carga de secciones con mapa secreto
         secciones = self.repositorio.obtener_secciones()
+        self.listbox_secciones.delete(0, tk.END) # Limpiamos por si acaso
+        self.mapa_secciones.clear()
+        
         for sec in secciones:
-            self.listbox_secciones.insert(tk.END, f"{sec[0]} - Sección {sec[1]}")
+            id_sec = sec[0]
+            texto_pantalla = f"Sección {sec[1]}"
+            
+            # Lo mostramos bonito en la pantalla
+            self.listbox_secciones.insert(tk.END, texto_pantalla)
+            # Lo guardamos en el diccionario (Ej: {"Sección A": 1})
+            self.mapa_secciones[texto_pantalla] = id_sec
 
     def guardar_click(self):
         """Captura visual, crea Entidades y delega el guardado."""
@@ -122,13 +130,15 @@ class GestorClasesUI:
             
             # Por cada sección seleccionada, creamos una entidad "Clase"
             for idx in indices_secciones:
+                # Obtenemos el texto de la sección seleccionada
                 texto_seccion = self.listbox_secciones.get(idx)
-                id_seccion = int(texto_seccion.split(" - ")[0])
-                
-                # Creamos la entidad pura y verificamos sus reglas de negocio
+                # buscamos el ID real de la sección usando el mapa secreto
+                id_seccion = self.mapa_secciones[texto_seccion]
+
+                # Creamos la entidad Clase y la agregamos a la lista
                 nueva_clase = Clase(materia, id_prof, id_grado, id_seccion)
                 nueva_clase.validar()
-                
+                # Agregamos a la lista de materias nuevas
                 lista_materias_nuevas.append(nueva_clase)
             
             # 2. Le pasamos toda la lista a la Base de Datos para que la guarde de un solo golpe

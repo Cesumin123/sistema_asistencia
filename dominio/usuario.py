@@ -6,10 +6,13 @@ class Usuario:
     """
     def __init__(self, nombre_completo: str, username: str, password: str, rol: str, id_usuario: int = None, estado_activo: int = 1):
         self.id_usuario = id_usuario
-        self.nombre_completo = nombre_completo.upper()
-        self.username = username.upper()
+        
+        # Si nombre_completo o rol vienen como NULL (None) desde la BD, les damos un valor por defecto antes de usar .upper()
+        self.nombre_completo = nombre_completo.upper() if nombre_completo else "ADMINISTRADOR GENERAL"
+        self.rol = rol.upper() if rol else "ADMIN"
+        
+        self.username = username
         self.password = password
-        self.rol = rol.upper()
         self.estado_activo = estado_activo
 
     def validar(self):
@@ -19,4 +22,4 @@ class Usuario:
         if len(self.username) < 4:
             raise ValueError("El nombre de usuario debe tener al menos 4 caracteres.")
         if len(self.password) < 4:
-            raise ValueError("La contraseña debe tener al menos 4 caracteres por seguridad.") 
+            raise ValueError("La contraseña debe tener al menos 4 caracteres por seguridad.")

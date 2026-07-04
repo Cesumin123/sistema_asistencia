@@ -26,7 +26,7 @@ def iniciar_aplicacion():
     root.title("Sistema Escolar - Pruebas")
     root.geometry("800x600")
     
-    # NUEVO: Botón de Administración General arriba
+    # Botón de Administración General arriba
     tk.Button(root, text="⚙️ Abrir Panel de Seguridad (Usuarios)", bg="#2c3e50", fg="white", font=("Arial", 10, "bold"),
               command=lambda: abrir_panel_seguridad(root, repositorio_user)).pack(pady=10, fill="x", padx=20)
 
