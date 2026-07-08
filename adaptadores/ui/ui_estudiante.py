@@ -61,7 +61,10 @@ class UIEstudiante:
         self.cedula_seleccionada = None 
         
         # 1. Diccionario de Traducción (Letra de Sección a ID numérico)
-        self.mapa_secciones = {"A": 1, "B": 2, "C": 3, "D": 4, "E": 5, "F": 6, "G": 7, "H": 8, "I": 9, "J": 10, "K": 11, "L": 12, "M": 13, "N": 14, "O": 15, "P": 16, "Q": 17, "R": 18, "S": 19, "T": 20, "U": 21, "V": 22, "W": 23, "X": 24, "Y": 25, "Z": 26}
+        self.mapa_secciones = {"A": 1, "B": 2, "C": 3, "D": 4, "E": 5, "F": 6, "G": 7,
+                                "H": 8, "I": 9, "J": 10, "K": 11, "L": 12, "M": 13, "N": 14, "O": 15, 
+                                "P": 16, "Q": 17, "R": 18, "S": 19, "T": 20, "U": 21, "V": 22, "W": 23,
+                                  "X": 24, "Y": 25, "Z": 26}
         # Mapa inverso (ID a Letra) para cuando cargamos datos a la tabla
         self.mapa_secciones_inverso = {v: k for k, v in self.mapa_secciones.items()}
 
@@ -71,11 +74,12 @@ class UIEstudiante:
         self.cargar_datos()
 
     def crear_interfaz(self):
-        """Dibuja la interfaz visual (IDÉNTICA A LA TUYA)"""
+        """Dibuja la interfaz visual"""
         frame_form = tk.Frame(self.root, pady=10, padx=10, bg="#f0f0f0", relief="groove", bd=2)
         frame_form.pack(fill="x", padx=10, pady=10)
         
-        tk.Label(frame_form, text="FICHA TÉCNICA DEL ESTUDIANTE", font=("Arial", 12, "bold"), bg="#f0f0f0").pack(pady=5)
+        tk.Label(frame_form, text="FICHA TÉCNICA DEL ESTUDIANTE", font=("Arial", 12, "bold"),
+                  bg="#f0f0f0").pack(pady=5)
         
         # Variables Tkinter
         self.var_nac = tk.StringVar(value="V")
@@ -88,7 +92,8 @@ class UIEstudiante:
         # --- FILA 1 ---
         f1 = tk.Frame(frame_form, bg="#f0f0f0"); f1.pack(pady=5)
         tk.Label(f1, text="Cédula:", bg="#f0f0f0").pack(side="left")
-        self.combo_nac = ttk.Combobox(f1, textvariable=self.var_nac, values=["V", "E", "P"], width=3, state="readonly")
+        self.combo_nac = ttk.Combobox(f1, textvariable=self.var_nac, values=["V", "E", "P"],
+                                       width=3, state="readonly")
         self.combo_nac.pack(side="left")
         self.entry_cedula = tk.Entry(f1, width=15)
         self.entry_cedula.pack(side="left", padx=(5, 20))
@@ -101,16 +106,18 @@ class UIEstudiante:
         AyudaVisual(self.entry_nombre, "Nombre y Apellido del estudiante.")
         
         tk.Label(f1, text="Género:", bg="#f0f0f0").pack(side="left")
-        self.combo_genero = ttk.Combobox(f1, textvariable=self.var_genero, values=["M", "F"], width=4, state="readonly")
+        self.combo_genero = ttk.Combobox(f1, textvariable=self.var_genero,
+                                          values=["M", "F"], width=4, state="readonly")
         self.combo_genero.pack(side="left")
         AyudaVisual(self.combo_genero, "Selecciona M (Masculino) o F (Femenino).")
 
         # --- FILA 2 ---
         f2 = tk.Frame(frame_form, bg="#f0f0f0"); f2.pack(pady=5)
         tk.Label(f2, text="Fecha Nacimiento:", bg="#f0f0f0").pack(side="left")
-        self.calendario = DateEntry(f2, width=12, date_pattern='dd/mm/y', locale='es_ES', background='darkblue')
+        self.calendario = DateEntry(f2, width=12, date_pattern='dd/mm/yyyy', locale='es_ES',
+                                     background='darkblue', state ="readonly")
         self.calendario.pack(side="left", padx=(5, 20))
-        AyudaVisual(self.calendario, "Haz clic para elegir el cumpleaños.")
+        # AyudaVisual(self.calendario, "Haz clic para elegir la fecha de nacimiento.")
         
         tk.Label(f2, text="Año Escolar (1-5):", bg="#f0f0f0").pack(side="left")
         self.entry_grado = tk.Entry(f2, width=5)
@@ -118,7 +125,8 @@ class UIEstudiante:
         AyudaVisual(self.entry_grado, "Escribe solo el número del año (Ej: 1).")
         
         tk.Label(f2, text="Sección:", bg="#f0f0f0").pack(side="left")
-        self.combo_seccion = ttk.Combobox(f2, textvariable=self.var_seccion, values=list(string.ascii_uppercase), width=4, state="readonly")
+        self.combo_seccion = ttk.Combobox(f2, textvariable=self.var_seccion, values=list(string.ascii_uppercase),
+                                           width=4, state="readonly")
         self.combo_seccion.pack(side="left")
         AyudaVisual(self.combo_seccion, "La letra de la sección.")
 
@@ -175,7 +183,8 @@ class UIEstudiante:
         cols = ("cedula", "nombre", "nac", "repre", "telf", "gen", "esc", "tur", "cond", "anio", "sec")
         self.tree = ttk.Treeview(self.root, columns=cols, show="headings")
         
-        headers = ["Cédula", "Nombre", "F. Nac", "Representante", "Telf", "Sx", "Escolaridad", "Turno", "Cond", "Año", "Sec"]
+        headers = ["Cédula", "Nombre", "F. Nac", "Representante", "Telf", "Sexo", 
+                   "Escolaridad", "Turno", "Cond", "Año", "Sec"]
         widths = [90, 200, 80, 150, 90, 30, 90, 60, 60, 40, 40]
         
         for i, col in enumerate(cols):
