@@ -19,14 +19,14 @@ def abrir_panel_seguridad(root_principal, repositorio_usuario):
     GestorUsuariosUI(root_principal, repositorio_usuario)
 
 def iniciar_aplicacion():
-    def iniciar_aplicacion():
+        
     # 1. Base de datos y Repositorios
         conexion = ConexionBD()
         repositorio_prof = SQLiteRepositorioProfesor(conexion)
         repositorio_clase = SQLiteRepositorioClase(conexion)
         repositorio_user = SQLiteRepositorioUsuario(conexion) 
     
-    # --- NUEVO: Repositorio de Estudiantes ---
+    # --- Repositorio de Estudiantes ---
         repositorio_estudiante = RepositorioEstudianteSQLite(conexion)
 
     # 2. Ventana Principal
