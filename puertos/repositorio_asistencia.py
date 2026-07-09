@@ -11,7 +11,7 @@ class PuertoRepositorioAsistencia(ABC):
         pass
         
     @abstractmethod
-    def obtener_planilla(self, id_clase: int, fecha: date) -> Optional[PlanillaAsistencia]:
+    def obtener_planilla(self, id_clase: int, fecha: str) -> Optional[PlanillaAsistencia]:
         """Recupera una asistencia previamente guardada."""
         pass
 
@@ -24,7 +24,7 @@ class PuertoRespaldoEmergencia(ABC):
         pass
         
     @abstractmethod
-    def recuperar_respaldo(self, id_clase: int, fecha: date) -> Optional[PlanillaAsistencia]:
+    def recuperar_respaldo(self, id_clase: int, fecha: str) -> Optional[PlanillaAsistencia]:
         """Verifica si existe un borrador sin guardar para esa clase y fecha."""
         pass
         

@@ -31,7 +31,7 @@ class RegistroAsistencia:
 class PlanillaAsistencia:
     """Raíz del Agregado: Representa la lista de asistencia de una clase en un día."""
     id_clase: int
-    fecha: date
+    fecha: str
     registros: List[RegistroAsistencia] = field(default_factory=list)
 
     def actualizar_registro(self, id_estudiante: str, nuevo_estado: EstadoAsistencia, motivo: str = None):
