@@ -250,12 +250,12 @@ class SelectorClaseUI:
         if self.clases:
             self.combo_clases.current(0)
         
-        # Selección de fecha
-        tk.Label(self.root, text="Fecha de Asistencia:", font=("Arial", 11)).pack(pady=10)
+        # Selección de fecha - CONFIGURADA EN FORMATO ESTRICTO ISO 8601 (AAAA-MM-DD)
+        tk.Label(self.root, text="Fecha de Asistencia (AAAA-MM-DD):", font=("Arial", 11, "bold")).pack(pady=10)
         self.cal_fecha = DateEntry(
-            self.root, width=12, background='darkblue', 
+            self.root, width=14, background='darkblue', 
             foreground='white', borderwidth=2, 
-            date_pattern='dd/mm/yyyy', locale='es_ES'
+            date_pattern='yyyy-mm-dd', locale='es_ES'
         )
         self.cal_fecha.pack()
         
@@ -276,7 +276,9 @@ class SelectorClaseUI:
         
         id_clase = self.ids[idx]
         nombre_clase = self.combo_clases.get()
-        fecha_str = self.cal_fecha.get_date().strftime("%d/%m/%Y")
+        
+        # Extracción y formateo directo a string ISO para la capa de Dominio e Infraestructura
+        fecha_str = self.cal_fecha.get_date().strftime("%Y-%m-%d")
         
         self.root.destroy()
         self.controlador.preparar_planilla(id_clase, fecha_str, nombre_clase)
@@ -329,8 +331,8 @@ class PlanillaUI:
         tk.Label(frame_head, text=self.nombre_clase, font=("Arial", 12, "bold"), bg="#ecf0f1").pack()
         tk.Label(
             frame_head, 
-            text=f"Fecha: {self.planilla.fecha}", 
-            font=("Arial", 10), 
+            text=f"Fecha: {self.planilla.fecha}", # Se mostrará en formato AAAA-MM-DD de forma nativa
+            font=("Arial", 10, "bold"), 
             bg="#ecf0f1"
         ).pack()
         

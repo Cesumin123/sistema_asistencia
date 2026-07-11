@@ -148,8 +148,11 @@ class GestorUsuariosUI:
 
     def desactivar(self):
         if not self.usuario_seleccionado_id: return
-        if messagebox.askyesno("Confirmar", "¿Seguro que desea desactivar a este usuario? Perderá el acceso al sistema."):
-            self.repositorio.desactivar(self.usuario_seleccionado_id)
-            messagebox.showinfo("Desactivado", "Usuario revocado del sistema exitosamente.")
-            self.limpiar()
-            self.cargar_tabla()
+        try:
+            if messagebox.askyesno("Confirmar", "¿Seguro que desea desactivar a este usuario? Perderá el acceso al sistema."):
+                self.repositorio.desactivar(self.usuario_seleccionado_id)
+                messagebox.showinfo("Desactivado", "Usuario revocado del sistema exitosamente.")
+                self.limpiar()
+                self.cargar_tabla()
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
