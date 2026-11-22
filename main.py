@@ -21,6 +21,14 @@ from adaptadores.db.sqlite_reportes import RepositorioReportesSQLite
 from adaptadores.documentos.pdf_reportes import ExportadorPDFReportLab
 from adaptadores.ui.ui_reportes import UIReportes
 
+# ============================================
+# NUEVO: Importaciones de Promoción y Listados
+# ============================================
+from adaptadores.db.sqlite_promocion import RepositorioPromocionSQLite
+from adaptadores.ui.ui_promocion import UIPromocion
+from adaptadores.db.sqlite_listados import RepositorioListadosSQLite
+from adaptadores.ui.ui_listados import UIListados
+
 from adaptadores.ui.ui_profesor import GestorProfesoresUI
 from adaptadores.ui.ui_clase import GestorClasesUI
 from adaptadores.ui.ui_usuario import GestorUsuariosUI
@@ -54,6 +62,21 @@ def abrir_modulo_reportes(conexion):
     exportador_pdf = ExportadorPDFReportLab()
     UIReportes(repo_reportes, exportador_pdf)
 
+def abrir_modulo_listados(conexion):
+    """
+    Inyecta el repositorio SQLite y el exportador PDF en UIListados.
+    """
+    repo_listados = RepositorioListadosSQLite(conexion)
+    exportador_pdf = ExportadorPDFReportLab()
+    UIListados(repo_listados, exportador_pdf)
+
+def abrir_modulo_promocion(conexion):
+    """
+    Inyecta el repositorio SQLite en UIPromocion.
+    """
+    repo_promocion = RepositorioPromocionSQLite(conexion)
+    UIPromocion(repo_promocion)
+
 def iniciar_aplicacion():
     # 1. Base de datos y Repositorios
     conexion = ConexionBD()
@@ -86,6 +109,15 @@ def iniciar_aplicacion():
     # ============================================
     tk.Button(root, text="📊 Ver Reportes y Estadísticas (Hexagonal)", bg="#8e44ad", fg="white", font=("Arial", 12, "bold"),
               command=lambda: abrir_modulo_reportes(conexion)).pack(pady=5, fill="x", padx=20)
+
+    # ============================================
+    # NUEVO: Botones para Listados y Promoción Anual
+    # ============================================
+    tk.Button(root, text="📑 Listados Generales y Consolidados (Hexagonal)", bg="#16a085", fg="white", font=("Arial", 12, "bold"),
+              command=lambda: abrir_modulo_listados(conexion)).pack(pady=5, fill="x", padx=20)
+
+    tk.Button(root, text="⚠️ Cierre y Promoción Anual (Hexagonal)", bg="#c0392b", fg="white", font=("Arial", 12, "bold"),
+              command=lambda: abrir_modulo_promocion(conexion)).pack(pady=5, fill="x", padx=20)
 
     # 3. Cuaderno de pestañas Académicas (Profesores y Clases)
     notebook = ttk.Notebook(root)
