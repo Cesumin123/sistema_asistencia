@@ -14,6 +14,13 @@ from adaptadores.db.sqlite_asistencia import RepositorioAsistenciaSQLite
 from adaptadores.respaldo.json_asistencia import RespaldoAsistenciaJSON
 from adaptadores.ui.ui_asistencia import GestorAsistenciaUI
 
+# ============================================
+# NUEVO: Importaciones del Módulo de Reportes
+# ============================================
+from adaptadores.db.sqlite_reportes import RepositorioReportesSQLite
+from adaptadores.documentos.pdf_reportes import ExportadorPDFReportLab
+from adaptadores.ui.ui_reportes import UIReportes
+
 from adaptadores.ui.ui_profesor import GestorProfesoresUI
 from adaptadores.ui.ui_clase import GestorClasesUI
 from adaptadores.ui.ui_usuario import GestorUsuariosUI
@@ -38,6 +45,14 @@ def abrir_modulo_asistencia(conexion):
     # tu GestorAsistenciaUI creará el ControladorAsistencia, el Servicio y el Constructor.
     ui_asistencia = GestorAsistenciaUI(repo_asistencia, respaldo_emergencia, conexion)
     ui_asistencia.mostrar()
+
+def abrir_modulo_reportes(conexion):
+    """
+    Inyecta el repositorio SQLite y el exportador PDF en UIReportes.
+    """
+    repo_reportes = RepositorioReportesSQLite(conexion)
+    exportador_pdf = ExportadorPDFReportLab()
+    UIReportes(repo_reportes, exportador_pdf)
 
 def iniciar_aplicacion():
     # 1. Base de datos y Repositorios
@@ -65,6 +80,12 @@ def iniciar_aplicacion():
     # ============================================
     tk.Button(root, text="📋 Pasar Lista de Asistencia (Núcleo)", bg="#27ae60", fg="white", font=("Arial", 12, "bold"),
               command=lambda: abrir_modulo_asistencia(conexion)).pack(pady=10, fill="x", padx=20)
+
+    # ============================================
+    # NUEVO: Botón para el Módulo de Reportes
+    # ============================================
+    tk.Button(root, text="📊 Ver Reportes y Estadísticas (Hexagonal)", bg="#8e44ad", fg="white", font=("Arial", 12, "bold"),
+              command=lambda: abrir_modulo_reportes(conexion)).pack(pady=5, fill="x", padx=20)
 
     # 3. Cuaderno de pestañas Académicas (Profesores y Clases)
     notebook = ttk.Notebook(root)
