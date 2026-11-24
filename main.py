@@ -78,7 +78,10 @@ def iniciar_aplicacion():
         try:
             win.state('zoomed')
         except Exception:
-            pass
+            try:
+                win.attributes('-zoomed', True)
+            except Exception:
+                pass
         nb = ttk.Notebook(win)
         nb.pack(fill="both", expand=True, padx=10, pady=10)
         GestorProfesoresUI(nb, repo_profesor)

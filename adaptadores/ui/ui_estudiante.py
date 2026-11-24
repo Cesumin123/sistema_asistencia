@@ -49,14 +49,26 @@ class UIEstudiante:
     Adaptador de Interfaz de Usuario para el módulo de Estudiantes.
     Solo interactúa con el Dominio a través del Puerto (Repositorio).
     """
-    def __init__(self, repositorio: PuertoRepositorioEstudiante):
+    def __init__(self, repositorio: PuertoRepositorioEstudiante, parent=None):
         # Inyección de dependencias
         self.repositorio = repositorio
         
-        self.root = tk.Toplevel()
+        if parent:
+            self.root = tk.Toplevel(parent)
+        else:
+            self.root = tk.Toplevel()
+
         self.root.title("Gestión Profesional de Estudiantes")
         self.root.geometry("1150x780")
-        self.root.state('zoomed') 
+        
+        # Maximizar multiplataforma (Windows y Linux)
+        try:
+            self.root.state('zoomed')
+        except Exception:
+            try:
+                self.root.attributes('-zoomed', True)
+            except Exception:
+                pass
         
         self.cedula_seleccionada = None 
         

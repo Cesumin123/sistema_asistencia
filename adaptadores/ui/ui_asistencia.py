@@ -239,7 +239,13 @@ class SelectorClaseUI:
         self.root = tk.Toplevel()
         self.root.title("Seleccionar Clase")
         self.root.geometry("500x350")
-        self.root.state('zoomed')
+        try:
+            self.root.state('zoomed')
+        except Exception:
+            try:
+                self.root.attributes('-zoomed', True)
+            except Exception:
+                pass
     
     def mostrar(self):
         """Muestra la ventana de selección."""
@@ -304,7 +310,13 @@ class PlanillaUI:
         self.win = tk.Toplevel()
         self.win.title("Planilla de Asistencia")
         self.win.geometry("850x600")
-        self.win.state('zoomed')
+        try:
+            self.win.state('zoomed')
+        except Exception:
+            try:
+                self.win.attributes('-zoomed', True)
+            except Exception:
+                pass
         
         self.tree = None
         self._crear_interfaz()
