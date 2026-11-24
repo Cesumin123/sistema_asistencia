@@ -197,21 +197,62 @@ def centrar_ventana(ventana: tk.Tk | tk.Toplevel, ancho: int, alto: int):
         ventana.geometry(f"{ancho}x{alto}")
 
 
+def _aplicar_maximizacion(ventana: tk.Tk | tk.Toplevel):
+    """Aplica maximización multiplataforma y geometría de respaldo sin lanzar TclError."""
+    if ventana is None:
+        return
+    try:
+        if not hasattr(ventana, "winfo_exists") or not ventana.winfo_exists():
+            return
+    except Exception:
+        return
+
+    try:
+        ventana.update_idletasks()
+    except Exception:
+        pass
+
+    # 1. Windows (o entornos que soportan state('zoomed'))
+    try:
+        ventana.state("zoomed")
+        return
+    except Exception:
+        pass
+
+    # 2. Linux / X11 / Wayland: attributes('-zoomed', True) + geometría de respaldo
+    try:
+        sw = ventana.winfo_screenwidth()
+        sh = ventana.winfo_screenheight()
+        if sw > 0 and sh > 0:
+            ancho_actual = ventana.winfo_width()
+            alto_actual = ventana.winfo_height()
+            if ancho_actual < int(sw * 0.9) or alto_actual < int(sh * 0.9):
+                ventana.geometry(f"{sw}x{sh}+0+0")
+                ventana.update_idletasks()
+    except Exception:
+        pass
+
+    try:
+        ventana.attributes("-zoomed", True)
+    except Exception:
+        pass
+
+    try:
+        ventana.update_idletasks()
+    except Exception:
+        pass
+
+
 def maximizar_ventana(ventana: tk.Tk | tk.Toplevel):
     """Maximiza una ventana de forma segura en Windows/Linux/macOS sin TclError."""
+    if ventana is None:
+        return
+    _aplicar_maximizacion(ventana)
     try:
-        ventana.state('zoomed')
+        if hasattr(ventana, "winfo_exists") and ventana.winfo_exists():
+            ventana.after(60, lambda v=ventana: _aplicar_maximizacion(v))
     except Exception:
-        try:
-            ventana.attributes('-zoomed', True)
-        except Exception:
-            try:
-                # Fallback: usar geometría de pantalla
-                sw = ventana.winfo_screenwidth()
-                sh = ventana.winfo_screenheight()
-                ventana.geometry(f"{sw}x{sh}+0+0")
-            except Exception:
-                pass
+        pass
 
 
 def configurar_ventana_hija(ventana: tk.Toplevel, padre: Optional[tk.Misc] = None):

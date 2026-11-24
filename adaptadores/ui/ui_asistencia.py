@@ -190,9 +190,9 @@ class PlanillaUI:
         self.win.title("Planilla de Asistencia — Pase de Lista")
         self.win.config(bg=COLOR_FONDO_APP)
         centrar_ventana(self.win, 900, 650)
-        maximizar_ventana(self.win)
         configurar_ventana_hija(self.win, parent)
         agregar_barra_superior_volver(self.win, parent, f"Planilla: {nombre_clase}")
+        maximizar_ventana(self.win)
 
         self.tree = None
         self.lbl_stats = None

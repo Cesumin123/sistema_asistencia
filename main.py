@@ -89,9 +89,9 @@ def iniciar_aplicacion():
         win = tk.Toplevel(padre)
         win.title("Gestión Académica - Profesores y Clases")
         win.geometry("900x600")
-        maximizar_ventana(win)
         configurar_ventana_hija(win, padre)
         agregar_barra_superior_volver(win, padre, "Módulo Académico")
+        maximizar_ventana(win)
         nb = ttk.Notebook(win)
         nb.pack(fill="both", expand=True, padx=10, pady=10)
         GestorProfesoresUI(
@@ -113,6 +113,7 @@ def iniciar_aplicacion():
         )
         configurar_ventana_hija(ui.root, padre)
         agregar_barra_superior_volver(ui.root, padre, "Módulo de Estudiantes")
+        maximizar_ventana(ui.root)
 
     def abrir_asistencia():
         padre = _obtener_padre()
@@ -124,18 +125,21 @@ def iniciar_aplicacion():
         ui = UIListados(repo_listados, exportador_pdf, parent=padre)
         configurar_ventana_hija(ui.root, padre)
         agregar_barra_superior_volver(ui.root, padre, "Módulo de Listados")
+        maximizar_ventana(ui.root)
 
     def abrir_reportes():
         padre = _obtener_padre()
         ui = UIReportes(repo_reportes, exportador_pdf, parent=padre)
         configurar_ventana_hija(ui.root, padre)
         agregar_barra_superior_volver(ui.root, padre, "Módulo de Reportes")
+        maximizar_ventana(ui.root)
 
     def abrir_promocion():
         padre = _obtener_padre()
         ui = UIPromocion(repo_promocion, parent=padre)
         configurar_ventana_hija(ui.root, padre)
         agregar_barra_superior_volver(ui.root, padre, "Módulo de Promoción")
+        maximizar_ventana(ui.root)
 
     def abrir_usuarios():
         padre = _obtener_padre()
@@ -143,6 +147,7 @@ def iniciar_aplicacion():
         if hasattr(ui, "root") and ui.root and ui.root.winfo_exists():
             configurar_ventana_hija(ui.root, padre)
             agregar_barra_superior_volver(ui.root, padre, "Módulo de Usuarios")
+            maximizar_ventana(ui.root)
 
     callbacks_modulos = {
         MODULO_ACADEMICO: abrir_academico,

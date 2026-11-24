@@ -29,6 +29,7 @@ from adaptadores.ui.utilidades_ui import (
     configurar_ventana_hija,
     restaurar_foco,
     agregar_barra_superior_volver,
+    maximizar_ventana,
 )
 
 
@@ -301,3 +302,106 @@ def test_renderizado_foto_preview_en_ui_profesor_y_estudiante(tk_root, db_mem, t
     assert ui_est.lbl_foto.cget("text") == "[ SIN FOTO ]"
     assert ui_est.lbl_foto.image is None
     assert ui_est._foto_preview_ref is None
+
+
+# ═════════════════════════════════════════════════════════════════════
+# TEST 5: MAXIMIZACIÓN MULTIPLATAFORMA DEFENSIVA POST-LOGIN
+# ═════════════════════════════════════════════════════════════════════
+
+def test_maximizar_ventana_tk_y_toplevel_sin_tclerror(tk_root):
+    """
+    Verifica que maximizar_ventana(ventana) opere defensivamente sin lanzar TclError
+    sobre tk.Tk, tk.Toplevel, tk.Toplevel tras configurar_ventana_hija, None y ventanas destruidas.
+    """
+    # 1. Sobre tk.Tk
+    maximizar_ventana(tk_root)
+    tk_root.update_idletasks()
+
+    # 2. Sobre tk.Toplevel independiente
+    win = tk.Toplevel(tk_root)
+    maximizar_ventana(win)
+    win.update_idletasks()
+    assert win.winfo_exists()
+
+    # 3. Sobre tk.Toplevel configurada como hija (transient + lift)
+    hija = tk.Toplevel(win)
+    configurar_ventana_hija(hija, win)
+    maximizar_ventana(hija)
+    hija.update()
+    assert hija.winfo_exists()
+
+    # Verificar que se aplicó estado zoomed/atributos o geometría de pantalla
+    sw = hija.winfo_screenwidth()
+    sh = hija.winfo_screenheight()
+    geom = hija.geometry()
+    assert geom, "La ventana debe conservar una geometría válida tras maximizar."
+    if sw > 0 and sh > 0:
+        # En Linux/X11 se aplica -zoomed o fallback f"{sw}x{sh}+0+0"
+        try:
+            es_zoomed = bool(hija.attributes("-zoomed"))
+        except Exception:
+            es_zoomed = False
+        assert es_zoomed or geom.startswith(f"{sw}x{sh}"), (
+            f"Se esperaba -zoomed=True o geometría {sw}x{sh}, obtenido: {geom}"
+        )
+
+    # 4. Casos límite: ventana destruida y None (no deben lanzar TclError)
+    hija.destroy()
+    maximizar_ventana(hija)
+    maximizar_ventana(None)
+    win.destroy()
+
+
+def test_auditoria_maximizacion_post_login_y_exclusion_login(tk_root):
+    """
+    Verifica por análisis AST que:
+    - main.py y los módulos post-login invocan maximizar_ventana().
+    - Ningún módulo fuera de utilidades_ui.py llama state('zoomed') crudo.
+    - ui_login.py NO invoca maximizar_ventana() y permanece compacto (resizable False).
+    """
+    raiz = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    archivos_post_login = [
+        os.path.join(raiz, "main.py"),
+        os.path.join(raiz, "adaptadores", "ui", "ui_menu_principal.py"),
+        os.path.join(raiz, "adaptadores", "ui", "ui_estudiante.py"),
+        os.path.join(raiz, "adaptadores", "ui", "ui_asistencia.py"),
+        os.path.join(raiz, "adaptadores", "ui", "ui_profesor.py"),
+        os.path.join(raiz, "adaptadores", "ui", "ui_listados.py"),
+        os.path.join(raiz, "adaptadores", "ui", "ui_reportes.py"),
+        os.path.join(raiz, "adaptadores", "ui", "ui_promocion.py"),
+        os.path.join(raiz, "adaptadores", "ui", "ui_usuario.py"),
+    ]
+
+    def _llamadas_en_ast(ruta):
+        with open(ruta, "r", encoding="utf-8") as f:
+            arbol = ast.parse(f.read(), filename=ruta)
+        llamadas_max = 0
+        llamadas_state_zoomed = 0
+        for nodo in ast.walk(arbol):
+            if isinstance(nodo, ast.Call):
+                if isinstance(nodo.func, ast.Name) and nodo.func.id == "maximizar_ventana":
+                    llamadas_max += 1
+                elif isinstance(nodo.func, ast.Attribute) and nodo.func.attr == "state":
+                    if nodo.args and isinstance(nodo.args[0], ast.Constant) and nodo.args[0].value == "zoomed":
+                        llamadas_state_zoomed += 1
+        return llamadas_max, llamadas_state_zoomed
+
+    for ruta in archivos_post_login:
+        nombre = os.path.basename(ruta)
+        n_max, n_zoomed = _llamadas_en_ast(ruta)
+        assert n_max >= 1, f"{nombre} debe invocar maximizar_ventana()."
+        assert n_zoomed == 0, f"{nombre} no debe llamar .state('zoomed') crudo; debe usar maximizar_ventana()."
+
+    # ui_login.py NO debe maximizarse ni llamar state('zoomed')
+    ruta_login = os.path.join(raiz, "adaptadores", "ui", "ui_login.py")
+    n_max_login, n_zoomed_login = _llamadas_en_ast(ruta_login)
+    assert n_max_login == 0, "ui_login.py NO debe invocar maximizar_ventana()."
+    assert n_zoomed_login == 0, "ui_login.py NO debe invocar state('zoomed')."
+
+    # Verificar instanciación compacta de VentanaLogin
+    from adaptadores.ui.ui_login import VentanaLogin
+    win_login = tk.Toplevel(tk_root)
+    VentanaLogin(repositorio_usuario=MagicMock(), on_login_exitoso=MagicMock(), root=win_login)
+    win_login.update_idletasks()
+    assert win_login.resizable() == (False, False)
+    win_login.destroy()
