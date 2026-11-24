@@ -1,8 +1,8 @@
 # adaptadores/ui/ui_menu_principal.py
 """
 Adaptador de Interfaz de Usuario para el Menú Principal (Dashboard).
-Controla la navegación central y aplica la matriz RBAC de dominio/permisos.py
-deshabilitando botones de módulos no autorizados.
+Dashboard profesional con panel lateral institucional, encabezado con
+usuario/rol activo, tarjetas de módulos con RBAC y botón de Cerrar Sesión.
 """
 
 import tkinter as tk
@@ -15,13 +15,20 @@ from PIL import Image, ImageTk
 from dominio.usuario import Usuario
 from dominio.permisos import (
     obtener_permisos_rol,
-    MODULO_ESTUDIANTES,
-    MODULO_ACADEMICO,
-    MODULO_ASISTENCIA,
-    MODULO_LISTADOS,
-    MODULO_REPORTES,
-    MODULO_PROMOCION,
-    MODULO_USUARIOS
+    MODULO_ESTUDIANTES, MODULO_ACADEMICO, MODULO_ASISTENCIA,
+    MODULO_LISTADOS, MODULO_REPORTES, MODULO_PROMOCION, MODULO_USUARIOS,
+)
+from adaptadores.ui.utilidades_ui import (
+    aplicar_tema_global, centrar_ventana, maximizar_ventana,
+    COLOR_FONDO_APP, COLOR_TARJETA, COLOR_PRIMARIO, COLOR_SIDEBAR,
+    COLOR_SIDEBAR_HEADER, COLOR_TEXTO_PRINCIPAL, COLOR_TEXTO_SECUNDARIO,
+    COLOR_TEXTO_CLARO, COLOR_SEPARADOR, COLOR_BORDE_TARJETA,
+    COLOR_ACENTO, COLOR_PELIGRO, COLOR_ADVERTENCIA, COLOR_SECUNDARIO,
+    COLOR_BADGE_ADMIN, COLOR_BADGE_ASISTENTE, COLOR_BADGE_DOCENTE,
+    FUENTE_TITULO, FUENTE_SUBTITULO, FUENTE_ENCABEZADO,
+    FUENTE_CUERPO, FUENTE_CUERPO_BOLD, FUENTE_BOTON,
+    FUENTE_PEQUEÑA, FUENTE_PEQUEÑA_BOLD,
+    crear_boton, crear_tarjeta, crear_separador,
 )
 
 
@@ -31,25 +38,75 @@ def resolver_ruta_recurso(nombre_archivo: str) -> str:
         base = sys._MEIPASS  # type: ignore
     except Exception:
         base = os.path.abspath(os.path.dirname(__file__))
-        # Intentar buscar en raíz del proyecto
         raiz = os.path.abspath(os.path.join(base, "..", ".."))
         if os.path.exists(os.path.join(raiz, nombre_archivo)):
             return os.path.join(raiz, nombre_archivo)
-
     return os.path.join(base, nombre_archivo)
 
 
+# Configuración de módulos para el dashboard
+MODULOS_CONFIG = [
+    {
+        "id": MODULO_ACADEMICO,
+        "icono": "🎓",
+        "titulo": "Gestión Académica",
+        "desc": "Profesores y Clases",
+        "color": COLOR_ADVERTENCIA,
+    },
+    {
+        "id": MODULO_ESTUDIANTES,
+        "icono": "👤",
+        "titulo": "Inscripciones",
+        "desc": "Gestión de Estudiantes",
+        "color": COLOR_SECUNDARIO,
+    },
+    {
+        "id": MODULO_ASISTENCIA,
+        "icono": "📋",
+        "titulo": "Pasar Lista",
+        "desc": "Asistencia Diaria",
+        "color": COLOR_ACENTO,
+    },
+    {
+        "id": MODULO_LISTADOS,
+        "icono": "📑",
+        "titulo": "Listados",
+        "desc": "Consolidados Generales",
+        "color": "#16A085",
+    },
+    {
+        "id": MODULO_REPORTES,
+        "icono": "📊",
+        "titulo": "Reportes",
+        "desc": "Estadísticas y PDF",
+        "color": "#8E44AD",
+    },
+    {
+        "id": MODULO_PROMOCION,
+        "icono": "⚠️",
+        "titulo": "Promoción Anual",
+        "desc": "Cierre de Año Escolar",
+        "color": "#D35400",
+    },
+    {
+        "id": MODULO_USUARIOS,
+        "icono": "⚙️",
+        "titulo": "Seguridad",
+        "desc": "Gestión de Usuarios",
+        "color": COLOR_PRIMARIO,
+    },
+]
+
+
 class MenuPrincipalUI:
-    """
-    Panel de Control Principal del Complejo Educativo Colinas del Llano.
-    """
+    """Panel de Control Principal del Complejo Educativo Colinas del Llano."""
 
     def __init__(
         self,
         usuario: Usuario,
         callbacks: Dict[str, Callable[[], None]],
         on_logout: Optional[Callable[[], None]] = None,
-        root: Optional[tk.Tk] = None
+        root: Optional[tk.Tk] = None,
     ):
         self.usuario = usuario
         self.callbacks = callbacks
@@ -62,166 +119,149 @@ class MenuPrincipalUI:
             self.root = root
             self._root_propio = False
 
-        self.root.title("Panel de Control - Complejo Educativo Colinas del Llano")
-        self.root.geometry("1000x600")
-        self.root.resizable(False, False)
-        self.root.config(bg="#f4f6f7")
+        aplicar_tema_global(self.root)
+        self.root.title("Panel de Control — Complejo Educativo Colinas del Llano")
+        self.root.config(bg=COLOR_FONDO_APP)
+        centrar_ventana(self.root, 1050, 650)
+        maximizar_ventana(self.root)
 
-        self._centrar_ventana(1000, 600)
-        self.logo_tk = None  # Mantener referencia viva de imagen
-
+        self.logo_tk = None
         self._crear_interfaz()
 
-    def _centrar_ventana(self, ancho: int, alto: int):
-        try:
-            self.root.update_idletasks()
-            sw = self.root.winfo_screenwidth()
-            sh = self.root.winfo_screenheight()
-            x = max(0, int((sw - ancho) / 2))
-            y = max(0, int((sh - alto) / 2))
-            self.root.geometry(f"{ancho}x{alto}+{x}+{y}")
-        except Exception:
-            pass
-
+    # ──────────────────────────────────────────────────────────
     def _crear_interfaz(self):
-        """Distribuye el panel izquierdo (Logo) y el panel derecho (Botones con RBAC)."""
-        # ====================================================================
-        # 1. PANEL IZQUIERDO (Blanco con Logo Institucional Defensivo)
-        # ====================================================================
-        frame_izq = tk.Frame(self.root, bg="white", width=380)
-        frame_izq.pack(side="left", fill="both", expand=True)
+        """Distribuye sidebar izquierdo y panel de módulos derecho."""
+        # ═══ SIDEBAR IZQUIERDO ═══
+        sidebar = tk.Frame(self.root, bg=COLOR_SIDEBAR, width=280)
+        sidebar.pack(side="left", fill="y")
+        sidebar.pack_propagate(False)
 
-        self._cargar_logo_defensivo(frame_izq)
+        # Logo institucional
+        self._cargar_logo_defensivo(sidebar)
 
-        # ====================================================================
-        # 2. PANEL DERECHO (Encabezado de Sesión y Módulos RBAC)
-        # ====================================================================
-        frame_der = tk.Frame(self.root, bg="#f4f6f7", padx=30, pady=15)
-        frame_der.pack(side="right", fill="both", expand=True)
-
-        # Encabezado del Sistema y Usuario Activo
+        # Nombre del colegio
         tk.Label(
-            frame_der,
-            text="PANEL DE CONTROL CENTRAL",
-            font=("Arial", 16, "bold"),
-            bg="#f4f6f7",
-            fg="#2c3e50"
-        ).pack(anchor="w", pady=(5, 2))
+            sidebar, text="COMPLEJO EDUCATIVO", font=FUENTE_CUERPO_BOLD,
+            fg=COLOR_TEXTO_CLARO, bg=COLOR_SIDEBAR,
+        ).pack(pady=(10, 0))
+        tk.Label(
+            sidebar, text="'Colinas del Llano'", font=FUENTE_PEQUEÑA,
+            fg="#95A5A6", bg=COLOR_SIDEBAR,
+        ).pack()
 
+        crear_separador(sidebar).pack(fill="x", padx=30, pady=15)
+
+        # Info del usuario activo
         nombre_mostrar = self.usuario.nombre_completo or self.usuario.username
-        info_usuario = f"👤 Usuario: {nombre_mostrar}   |   Rol: {self.usuario.rol}"
-        
-        color_badge = "#27ae60" if self.usuario.rol == "ADMIN" else ("#2980b9" if self.usuario.rol == "ASISTENTE" else "#e67e22")
-        lbl_user = tk.Label(
-            frame_der,
-            text=info_usuario,
-            font=("Arial", 10, "bold"),
-            bg="#f4f6f7",
-            fg=color_badge
-        )
-        lbl_user.pack(anchor="w", pady=(0, 15))
+        color_badge = {
+            "ADMIN": COLOR_BADGE_ADMIN,
+            "ASISTENTE": COLOR_BADGE_ASISTENTE,
+        }.get(self.usuario.rol, COLOR_BADGE_DOCENTE)
 
-        # Obtener matriz de permisos del rol
+        tk.Label(
+            sidebar, text=f"👤  {nombre_mostrar}", font=FUENTE_CUERPO_BOLD,
+            fg=COLOR_TEXTO_CLARO, bg=COLOR_SIDEBAR, wraplength=240,
+        ).pack(padx=20, anchor="w")
+
+        # Badge del rol
+        f_badge = tk.Frame(sidebar, bg=COLOR_SIDEBAR)
+        f_badge.pack(padx=20, anchor="w", pady=(4, 0))
+        tk.Label(
+            f_badge, text=f"  {self.usuario.rol}  ", font=FUENTE_PEQUEÑA_BOLD,
+            fg=COLOR_TEXTO_CLARO, bg=color_badge,
+        ).pack(side="left")
+
+        # Spacer flexible
+        tk.Frame(sidebar, bg=COLOR_SIDEBAR).pack(expand=True, fill="both")
+
+        # Botón Cerrar Sesión (anclado abajo)
+        crear_boton(
+            sidebar, texto="🚪  Cerrar Sesión", comando=self.cerrar_sesion,
+            color_bg="#95A5A6", color_hover="#7F8C8D",
+        ).pack(fill="x", padx=20, pady=(0, 20), ipady=4)
+
+        # ═══ PANEL PRINCIPAL DERECHO ═══
+        panel_principal = tk.Frame(self.root, bg=COLOR_FONDO_APP, padx=30, pady=20)
+        panel_principal.pack(side="right", fill="both", expand=True)
+
+        # Encabezado
+        tk.Label(
+            panel_principal, text="PANEL DE CONTROL",
+            font=FUENTE_TITULO, bg=COLOR_FONDO_APP, fg=COLOR_TEXTO_PRINCIPAL,
+        ).pack(anchor="w", pady=(5, 2))
+        tk.Label(
+            panel_principal,
+            text="Seleccione un módulo para comenzar a trabajar",
+            font=FUENTE_PEQUEÑA, bg=COLOR_FONDO_APP, fg=COLOR_TEXTO_SECUNDARIO,
+        ).pack(anchor="w", pady=(0, 20))
+
+        # Grid de tarjetas de módulos
         permisos = obtener_permisos_rol(self.usuario.rol)
+        frame_grid = tk.Frame(panel_principal, bg=COLOR_FONDO_APP)
+        frame_grid.pack(fill="both", expand=True)
 
-        # Contenedor de Botones
-        f_botones = tk.Frame(frame_der, bg="#f4f6f7")
-        f_botones.pack(fill="both", expand=True)
+        # Configurar columnas con peso uniforme
+        frame_grid.columnconfigure(0, weight=1)
+        frame_grid.columnconfigure(1, weight=1)
 
-        # 1. Gestión Académica (Profesores y Clases) -> MODULO_ACADEMICO
-        self._agregar_boton_modulo(
-            f_botones,
-            texto="🎓 Gestión Académica (Profesores y Clases)",
-            modulo=MODULO_ACADEMICO,
-            color_bg="#f39c12",
-            color_fg="white",
-            autorizado=permisos.get(MODULO_ACADEMICO, False),
-            comando=self.callbacks.get(MODULO_ACADEMICO)
+        for idx, modulo in enumerate(MODULOS_CONFIG):
+            fila = idx // 2
+            columna = idx % 2
+            autorizado = permisos.get(modulo["id"], False)
+            callback = self.callbacks.get(modulo["id"])
+
+            self._crear_tarjeta_modulo(
+                frame_grid, modulo, autorizado, callback, fila, columna,
+            )
+
+    def _crear_tarjeta_modulo(self, parent, modulo: dict, autorizado: bool,
+                               callback, fila: int, columna: int):
+        """Crea una tarjeta de módulo con icono, título y descripción."""
+        tarjeta = tk.Frame(
+            parent, bg=COLOR_TARJETA,
+            highlightbackground=COLOR_BORDE_TARJETA if autorizado else "#E8E8E8",
+            highlightthickness=1,
+            padx=16, pady=14,
+            cursor="hand2" if autorizado else "arrow",
         )
+        tarjeta.grid(row=fila, column=columna, padx=6, pady=6, sticky="nsew")
 
-        # 2. Gestión de Estudiantes -> MODULO_ESTUDIANTES
-        self._agregar_boton_modulo(
-            f_botones,
-            texto="👤 Oficina de Inscripciones (Estudiantes)",
-            modulo=MODULO_ESTUDIANTES,
-            color_bg="#2980b9",
-            color_fg="white",
-            autorizado=permisos.get(MODULO_ESTUDIANTES, False),
-            comando=self.callbacks.get(MODULO_ESTUDIANTES)
-        )
+        # Banda de color lateral
+        banda = tk.Frame(tarjeta, bg=modulo["color"] if autorizado else "#BDC3C7", width=4)
+        banda.pack(side="left", fill="y", padx=(0, 12))
 
-        # 3. Pasar Asistencia -> MODULO_ASISTENCIA
-        self._agregar_boton_modulo(
-            f_botones,
-            texto="📋 Pasar Lista de Asistencia (Núcleo)",
-            modulo=MODULO_ASISTENCIA,
-            color_bg="#27ae60",
-            color_fg="white",
-            autorizado=permisos.get(MODULO_ASISTENCIA, False),
-            comando=self.callbacks.get(MODULO_ASISTENCIA)
-        )
+        # Contenido
+        f_contenido = tk.Frame(tarjeta, bg=COLOR_TARJETA)
+        f_contenido.pack(side="left", fill="both", expand=True)
 
-        # 4. Listados Generales -> MODULO_LISTADOS
-        self._agregar_boton_modulo(
-            f_botones,
-            texto="📑 Listados Generales y Consolidados",
-            modulo=MODULO_LISTADOS,
-            color_bg="#16a085",
-            color_fg="white",
-            autorizado=permisos.get(MODULO_LISTADOS, False),
-            comando=self.callbacks.get(MODULO_LISTADOS)
-        )
+        fg_titulo = COLOR_TEXTO_PRINCIPAL if autorizado else "#BDC3C7"
+        fg_desc = COLOR_TEXTO_SECUNDARIO if autorizado else "#D5D8DC"
 
-        # 5. Reportes y Estadísticas -> MODULO_REPORTES
-        self._agregar_boton_modulo(
-            f_botones,
-            texto="📊 Módulo de Reportes y Estadísticas (PDF)",
-            modulo=MODULO_REPORTES,
-            color_bg="#8e44ad",
-            color_fg="white",
-            autorizado=permisos.get(MODULO_REPORTES, False),
-            comando=self.callbacks.get(MODULO_REPORTES)
-        )
+        tk.Label(
+            f_contenido, text=f"{modulo['icono']}  {modulo['titulo']}",
+            font=FUENTE_CUERPO_BOLD, bg=COLOR_TARJETA, fg=fg_titulo, anchor="w",
+        ).pack(fill="x")
+        tk.Label(
+            f_contenido, text=modulo["desc"],
+            font=FUENTE_PEQUEÑA, bg=COLOR_TARJETA, fg=fg_desc, anchor="w",
+        ).pack(fill="x")
 
-        # 6. Cierre y Promoción Anual -> MODULO_PROMOCION
-        self._agregar_boton_modulo(
-            f_botones,
-            texto="⚠️ Cierre y Promoción de Año Escolar",
-            modulo=MODULO_PROMOCION,
-            color_bg="#d35400",
-            color_fg="white",
-            autorizado=permisos.get(MODULO_PROMOCION, False),
-            comando=self.callbacks.get(MODULO_PROMOCION)
-        )
+        if not autorizado:
+            tk.Label(
+                f_contenido, text="🔒 Sin acceso",
+                font=FUENTE_PEQUEÑA, bg=COLOR_TARJETA, fg="#BDC3C7", anchor="w",
+            ).pack(fill="x")
 
-        # 7. Gestión de Usuarios y Seguridad -> MODULO_USUARIOS
-        self._agregar_boton_modulo(
-            f_botones,
-            texto="⚙️ Panel de Seguridad (Gestión de Usuarios)",
-            modulo=MODULO_USUARIOS,
-            color_bg="#2c3e50",
-            color_fg="white",
-            autorizado=permisos.get(MODULO_USUARIOS, False),
-            comando=self.callbacks.get(MODULO_USUARIOS)
-        )
-
-        # Botón Cerrar Sesión
-        tk.Button(
-            frame_der,
-            text="🚪 Cerrar Sesión",
-            font=("Arial", 10, "bold"),
-            bg="#95a5a6",
-            fg="white",
-            cursor="hand2",
-            relief="flat",
-            command=self.cerrar_sesion
-        ).pack(anchor="e", pady=(10, 0))
+        if autorizado and callback:
+            for widget in [tarjeta, banda, f_contenido] + f_contenido.winfo_children():
+                widget.bind("<Button-1>", lambda e, cb=callback: cb())
+                widget.bind("<Enter>", lambda e, t=tarjeta: t.config(highlightbackground=modulo["color"]))
+                widget.bind("<Leave>", lambda e, t=tarjeta: t.config(highlightbackground=COLOR_BORDE_TARJETA))
 
     def _cargar_logo_defensivo(self, contenedor: tk.Frame):
-        """Carga defensiva con Pillow de la imagen institucional (escalada a 300x300 px)."""
+        """Carga defensiva de la imagen institucional."""
         nombres_posibles = ["logo_colegio.png", "LOGOLICEO.png", "logo.png"]
         ruta_encontrada = None
-
         for nom in nombres_posibles:
             ruta = resolver_ruta_recurso(nom)
             if os.path.exists(ruta):
@@ -231,69 +271,27 @@ class MenuPrincipalUI:
         if ruta_encontrada:
             try:
                 img_orig = Image.open(ruta_encontrada)
-                img_redim = img_orig.resize((300, 300), Image.Resampling.LANCZOS)
+                # Redimensionar proporcionalmente a max 160px
+                ratio = min(160 / img_orig.width, 160 / img_orig.height)
+                nuevo_w = int(img_orig.width * ratio)
+                nuevo_h = int(img_orig.height * ratio)
+                img_redim = img_orig.resize((nuevo_w, nuevo_h), Image.Resampling.LANCZOS)
                 self.logo_tk = ImageTk.PhotoImage(img_redim)
-
-                lbl_img = tk.Label(contenedor, image=self.logo_tk, bg="white")
-                lbl_img.pack(expand=True)
+                tk.Label(
+                    contenedor, image=self.logo_tk, bg=COLOR_SIDEBAR,
+                ).pack(pady=(25, 0))
                 return
             except Exception:
                 pass
 
-        # Fallback defensivo si la imagen no existe o Pillow falla
-        f_rotulo = tk.Frame(contenedor, bg="white")
-        f_rotulo.pack(expand=True)
+        # Fallback textual
         tk.Label(
-            f_rotulo,
-            text="COMPLEJO EDUCATIVO\n'COLINAS DEL LLANO'",
-            font=("Arial", 14, "bold"),
-            fg="#2c3e50",
-            bg="white",
-            justify="center"
-        ).pack(pady=10)
-        tk.Label(
-            f_rotulo,
-            text="[ Escudo Institucional ]",
-            font=("Arial", 10, "italic"),
-            fg="#95a5a6",
-            bg="white"
-        ).pack()
-
-    def _agregar_boton_modulo(
-        self,
-        contenedor: tk.Frame,
-        texto: str,
-        modulo: str,
-        color_bg: str,
-        color_fg: str,
-        autorizado: bool,
-        comando: Optional[Callable[[], None]]
-    ):
-        """Crea un botón aplicando el estado habilitado/deshabilitado según la autorización RBAC."""
-        if autorizado:
-            estado = "normal"
-            bg = color_bg
-            cursor = "hand2"
-        else:
-            estado = "disabled"
-            bg = "#bdc3c7"
-            cursor = "arrow"
-
-        btn = tk.Button(
-            contenedor,
-            text=texto,
-            font=("Arial", 10, "bold"),
-            bg=bg,
-            fg=color_fg,
-            state=estado,
-            cursor=cursor,
-            relief="flat",
-            command=comando if autorizado else None
-        )
-        btn.pack(fill="x", pady=3)
+            contenedor, text="🏫", font=(FUENTE_CUERPO[0], 40),
+            fg=COLOR_TEXTO_CLARO, bg=COLOR_SIDEBAR,
+        ).pack(pady=(30, 0))
 
     def cerrar_sesion(self):
-        """Cierra el panel de control y regresa al login si existe callback."""
+        """Cierra el panel de control y regresa al login."""
         self.root.destroy()
         if self.on_logout:
             self.on_logout()

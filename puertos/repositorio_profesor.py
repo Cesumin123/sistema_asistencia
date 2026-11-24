@@ -1,15 +1,31 @@
 # puertos/repositorio_profesor.py
 from abc import ABC, abstractmethod
+from typing import List, Optional
 from dominio.profesor import Profesor
 
 class RepositorioProfesor(ABC):
     """
-    Puerto de salida. Define las operaciones que la base de datos DEBE cumplir.
+    Puerto de salida para la persistencia y gestión de Profesores.
     """
     @abstractmethod
-    def guardar(self, profesor: Profesor):
+    def guardar(self, profesor: Profesor) -> bool:
         pass
 
     @abstractmethod
-    def obtener_todos(self) -> list[Profesor]:
+    def actualizar(self, profesor: Profesor) -> bool:
+        """Actualiza los datos de un profesor existente."""
+        pass
+
+    @abstractmethod
+    def eliminar(self, identificador) -> bool:
+        """Realiza un borrado lógico del profesor (ESTADO_ACTIVO = 0)."""
+        pass
+
+    @abstractmethod
+    def obtener_todos(self) -> List[Profesor]:
+        pass
+
+    @abstractmethod
+    def obtener_activos(self) -> List[Profesor]:
+        """Devuelve los profesores con ESTADO_ACTIVO = 1."""
         pass

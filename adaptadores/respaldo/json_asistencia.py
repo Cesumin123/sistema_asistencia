@@ -9,11 +9,16 @@ from puertos.repositorio_asistencia import PuertoRespaldoEmergencia
 class RespaldoAsistenciaJSON(PuertoRespaldoEmergencia):
     def __init__(self, ruta_archivo: str = "memoria_emergencia.json"):
         """
-         Guardamos la ruta por defecto, pero permitimos cambiarla si es necesario.
+        Guardamos la ruta por defecto, pero permitimos cambiarla si es necesario.
         """
         self.ruta_archivo = ruta_archivo
 
     def guardar_respaldo(self, planilla: PlanillaAsistencia) -> None:
+        # Asegurar directorio si es ruta personalizada
+        directorio = os.path.dirname(self.ruta_archivo)
+        if directorio:
+            os.makedirs(directorio, exist_ok=True)
+
         # 1. Convertimos la planilla a un diccionario simple
         datos = {
             "id_clase": planilla.id_clase,
@@ -38,33 +43,55 @@ class RespaldoAsistenciaJSON(PuertoRespaldoEmergencia):
             
         try:
             with open(self.ruta_archivo, "r", encoding="utf-8") as archivo:
-                datos = json.load(archivo)
+                contenido = archivo.read().strip()
+                if not contenido:
+                    return None
+                datos = json.loads(contenido)
             
-            # --- BLINDAJE KISS ---
+            # --- BLINDAJE DEFENSIVO ANTE CORRUPCIÓN ---
+            if not isinstance(datos, dict):
+                return None
+            
             # Verificamos que el archivo corresponda EXACTAMENTE a la clase y fecha actual
             if datos.get("id_clase") != id_clase or datos.get("fecha") != fecha:
                 return None
             
             # Reconstruimos la planilla del dominio
             planilla = PlanillaAsistencia(id_clase=id_clase, fecha=fecha)
+            registros_raw = datos.get("registros")
+            if not isinstance(registros_raw, list):
+                return None
             
-            for item in datos.get("registros", []):
+            for item in registros_raw:
+                if not isinstance(item, dict):
+                    continue
+                id_est = item.get("id_estudiante")
+                estado_val = item.get("estado")
+                if not id_est or not estado_val:
+                    continue
+                try:
+                    estado_enum = EstadoAsistencia(estado_val)
+                except ValueError:
+                    continue
+
                 registro = RegistroAsistencia(
-                    id_estudiante=item["id_estudiante"],
-                    estado=EstadoAsistencia(item["estado"]),
+                    id_estudiante=str(id_est),
+                    estado=estado_enum,
                     motivo_justificacion=item.get("motivo")
                 )
                 planilla.registros.append(registro)
                 
             return planilla
             
-        except Exception as error:
-            # KISS: Si el archivo se corrompió a la mitad de un apagón, 
-            # simplemente lo ignoramos para no tumbar el programa.
-            print(f"No se pudo recuperar el respaldo: {error}")
+        except Exception:
+            # Resiliencia: si el archivo se corrompió o truncó por apagón repentino,
+            # lo ignoramos defensivamente sin tumbar el programa.
             return None
 
     def limpiar_respaldo(self) -> None:
         """Borra el archivo temporal una vez que se guardó en la BD oficial."""
         if os.path.exists(self.ruta_archivo):
-            os.remove(self.ruta_archivo)
+            try:
+                os.remove(self.ruta_archivo)
+            except OSError:
+                pass

@@ -30,6 +30,7 @@ from adaptadores.db.sqlite_listados import RepositorioListadosSQLite
 from adaptadores.documentos.pdf_reportes import ExportadorPDFReportLab
 
 # Adaptadores de Interfaz de Usuario (UI)
+from adaptadores.ui.utilidades_ui import aplicar_tema_global, maximizar_ventana
 from adaptadores.ui.ui_login import VentanaLogin
 from adaptadores.ui.ui_menu_principal import MenuPrincipalUI
 from adaptadores.ui.ui_usuario import GestorUsuariosUI
@@ -75,13 +76,7 @@ def iniciar_aplicacion():
         win = tk.Toplevel()
         win.title("Gestión Académica - Profesores y Clases")
         win.geometry("900x600")
-        try:
-            win.state('zoomed')
-        except Exception:
-            try:
-                win.attributes('-zoomed', True)
-            except Exception:
-                pass
+        maximizar_ventana(win)
         nb = ttk.Notebook(win)
         nb.pack(fill="both", expand=True, padx=10, pady=10)
         GestorProfesoresUI(nb, repo_profesor)
@@ -91,7 +86,7 @@ def iniciar_aplicacion():
         UIEstudiante(repo_estudiante)
 
     def abrir_asistencia():
-        ui_asist = GestorAsistenciaUI(repo_asistencia, respaldo_asistencia, conexion)
+        ui_asist = GestorAsistenciaUI(repo_asistencia, respaldo_asistencia, repo_clase)
         ui_asist.mostrar()
 
     def abrir_listados():

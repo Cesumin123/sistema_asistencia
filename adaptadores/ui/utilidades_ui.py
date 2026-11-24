@@ -1,89 +1,379 @@
 # adaptadores/ui/utilidades_ui.py
-import tkinter as tk
+"""
+Sistema de Diseño Unificado — Complejo Educativo 'Colinas del Llano'.
 
+Módulo central que define:
+- Paleta institucional coherente
+- Tipografías legibles multiplataforma
+- Estilos ttk modernos (Treeview zebra, botones hover, tarjetas)
+- Utilidades multiplataforma (centrado, maximizado seguro)
+- Componente reutilizable de Tooltips (AyudaVisual)
+"""
+
+import tkinter as tk
+from tkinter import ttk
+import platform
+
+# ═══════════════════════════════════════════════════════════════════
+# 1. PALETA INSTITUCIONAL
+# ═══════════════════════════════════════════════════════════════════
+COLOR_FONDO_APP = "#F4F6F9"           # Fondo neutro general
+COLOR_TARJETA = "#FFFFFF"             # Fondo tarjetas / paneles
+COLOR_BORDE_TARJETA = "#DCE1E8"       # Borde sutil de tarjetas
+COLOR_PRIMARIO = "#2C3E50"            # Azul institucional oscuro
+COLOR_PRIMARIO_HOVER = "#1A252F"      # Hover del primario
+COLOR_SECUNDARIO = "#3498DB"          # Azul medio (botones secundarios)
+COLOR_SECUNDARIO_HOVER = "#2980B9"    # Hover del secundario
+COLOR_ACENTO = "#27AE60"              # Verde (éxito, guardar)
+COLOR_ACENTO_HOVER = "#219A52"        # Hover del acento
+COLOR_PELIGRO = "#C0392B"             # Rojo (eliminar, alertas críticas)
+COLOR_PELIGRO_HOVER = "#A93226"       # Hover del peligro
+COLOR_ADVERTENCIA = "#F39C12"         # Ámbar (advertencias)
+COLOR_ADVERTENCIA_HOVER = "#D68910"   # Hover de advertencia
+COLOR_TEXTO_PRINCIPAL = "#2C3E50"     # Texto principal oscuro
+COLOR_TEXTO_SECUNDARIO = "#7F8C8D"    # Texto auxiliar / placeholder
+COLOR_TEXTO_CLARO = "#FFFFFF"         # Texto sobre fondos oscuros
+COLOR_SEPARADOR = "#E5E7E9"           # Líneas separadoras
+COLOR_SIDEBAR = "#2C3E50"             # Panel lateral institucional
+COLOR_SIDEBAR_HEADER = "#1A252F"      # Header del sidebar
+COLOR_FILA_PAR = "#FFFFFF"            # Treeview fila par (zebra)
+COLOR_FILA_IMPAR = "#F2F4F7"          # Treeview fila impar (zebra)
+COLOR_TREEVIEW_HEADER = "#34495E"     # Cabecera de tabla
+COLOR_ALERTA_RIESGO_BG = "#FADBD8"   # Fondo rojo suave alertas < 75%
+COLOR_ALERTA_RIESGO_FG = "#78281F"   # Texto rojo oscuro alertas < 75%
+COLOR_BADGE_ADMIN = "#27AE60"
+COLOR_BADGE_ASISTENTE = "#2980B9"
+COLOR_BADGE_DOCENTE = "#E67E22"
+
+# ═══════════════════════════════════════════════════════════════════
+# 2. TIPOGRAFÍAS MULTIPLATAFORMA
+# ═══════════════════════════════════════════════════════════════════
+_so = platform.system()
+if _so == "Windows":
+    FUENTE_FAMILIA = "Segoe UI"
+elif _so == "Darwin":
+    FUENTE_FAMILIA = "Helvetica Neue"
+else:
+    FUENTE_FAMILIA = "DejaVu Sans"
+
+FUENTE_TITULO = (FUENTE_FAMILIA, 18, "bold")
+FUENTE_SUBTITULO = (FUENTE_FAMILIA, 14, "bold")
+FUENTE_ENCABEZADO = (FUENTE_FAMILIA, 12, "bold")
+FUENTE_CUERPO = (FUENTE_FAMILIA, 10)
+FUENTE_CUERPO_BOLD = (FUENTE_FAMILIA, 10, "bold")
+FUENTE_PEQUEÑA = (FUENTE_FAMILIA, 9)
+FUENTE_PEQUEÑA_BOLD = (FUENTE_FAMILIA, 9, "bold")
+FUENTE_ETIQUETA = (FUENTE_FAMILIA, 10, "bold")
+FUENTE_BOTON = (FUENTE_FAMILIA, 10, "bold")
+FUENTE_TOOLTIP = (FUENTE_FAMILIA, 8)
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 3. ESTILOS TTK GLOBALES
+# ═══════════════════════════════════════════════════════════════════
+def aplicar_tema_global(root: tk.Tk = None):
+    """
+    Aplica los estilos ttk modernos a toda la aplicación.
+    Debe llamarse una vez tras crear la raíz tk.Tk().
+    """
+    estilo = ttk.Style()
+
+    # Usar tema base clam (el más personalizable en cross-platform)
+    try:
+        estilo.theme_use("clam")
+    except Exception:
+        pass
+
+    # --- Treeview ---
+    estilo.configure(
+        "Treeview",
+        background=COLOR_FILA_PAR,
+        foreground=COLOR_TEXTO_PRINCIPAL,
+        fieldbackground=COLOR_FILA_PAR,
+        font=FUENTE_CUERPO,
+        rowheight=28,
+        borderwidth=0,
+    )
+    estilo.configure(
+        "Treeview.Heading",
+        background=COLOR_TREEVIEW_HEADER,
+        foreground=COLOR_TEXTO_CLARO,
+        font=FUENTE_PEQUEÑA_BOLD,
+        relief="flat",
+        padding=(8, 4),
+    )
+    estilo.map(
+        "Treeview.Heading",
+        background=[("active", COLOR_PRIMARIO_HOVER)],
+    )
+    estilo.map(
+        "Treeview",
+        background=[("selected", COLOR_SECUNDARIO)],
+        foreground=[("selected", COLOR_TEXTO_CLARO)],
+    )
+
+    # --- Notebook / Pestañas ---
+    estilo.configure(
+        "TNotebook",
+        background=COLOR_FONDO_APP,
+        borderwidth=0,
+    )
+    estilo.configure(
+        "TNotebook.Tab",
+        background=COLOR_SEPARADOR,
+        foreground=COLOR_TEXTO_PRINCIPAL,
+        font=FUENTE_PEQUEÑA_BOLD,
+        padding=(14, 6),
+    )
+    estilo.map(
+        "TNotebook.Tab",
+        background=[("selected", COLOR_TARJETA)],
+        foreground=[("selected", COLOR_PRIMARIO)],
+    )
+
+    # --- Combobox ---
+    estilo.configure(
+        "TCombobox",
+        font=FUENTE_CUERPO,
+    )
+
+    # --- Scrollbar (más fina y moderna) ---
+    estilo.configure(
+        "Vertical.TScrollbar",
+        gripcount=0,
+        background=COLOR_SEPARADOR,
+        troughcolor=COLOR_FONDO_APP,
+        borderwidth=0,
+        width=10,
+    )
+
+    # --- Entry ---
+    estilo.configure(
+        "TEntry",
+        font=FUENTE_CUERPO,
+    )
+
+    return estilo
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 4. UTILIDADES MULTIPLATAFORMA
+# ═══════════════════════════════════════════════════════════════════
+def centrar_ventana(ventana: tk.Tk | tk.Toplevel, ancho: int, alto: int):
+    """Centra una ventana en la pantalla de forma segura."""
+    try:
+        ventana.update_idletasks()
+        sw = ventana.winfo_screenwidth()
+        sh = ventana.winfo_screenheight()
+        x = max(0, int((sw - ancho) / 2))
+        y = max(0, int((sh - alto) / 2))
+        ventana.geometry(f"{ancho}x{alto}+{x}+{y}")
+    except Exception:
+        ventana.geometry(f"{ancho}x{alto}")
+
+
+def maximizar_ventana(ventana: tk.Tk | tk.Toplevel):
+    """Maximiza una ventana de forma segura en Windows/Linux/macOS sin TclError."""
+    try:
+        ventana.state('zoomed')
+    except Exception:
+        try:
+            ventana.attributes('-zoomed', True)
+        except Exception:
+            try:
+                # Fallback: usar geometría de pantalla
+                sw = ventana.winfo_screenwidth()
+                sh = ventana.winfo_screenheight()
+                ventana.geometry(f"{sw}x{sh}+0+0")
+            except Exception:
+                pass
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 5. FÁBRICAS DE WIDGETS ESTILIZADOS
+# ═══════════════════════════════════════════════════════════════════
+def crear_boton(
+    parent,
+    texto: str,
+    comando=None,
+    color_bg: str = COLOR_SECUNDARIO,
+    color_fg: str = COLOR_TEXTO_CLARO,
+    color_hover: str = None,
+    ancho: int = None,
+    fuente=None,
+    habilitado: bool = True,
+    **kwargs
+) -> tk.Button:
+    """Crea un botón estilizado con efecto hover y cursor de mano."""
+    if fuente is None:
+        fuente = FUENTE_BOTON
+    if color_hover is None:
+        color_hover = _oscurecer_color(color_bg)
+
+    estado = "normal" if habilitado else "disabled"
+    bg_real = color_bg if habilitado else "#BDC3C7"
+    cursor = "hand2" if habilitado else "arrow"
+
+    btn = tk.Button(
+        parent,
+        text=texto,
+        font=fuente,
+        bg=bg_real,
+        fg=color_fg,
+        activebackground=color_hover,
+        activeforeground=color_fg,
+        state=estado,
+        cursor=cursor,
+        relief="flat",
+        bd=0,
+        padx=16,
+        pady=8,
+        command=comando if habilitado else None,
+        **kwargs,
+    )
+
+    if habilitado:
+        btn.bind("<Enter>", lambda e: btn.config(bg=color_hover))
+        btn.bind("<Leave>", lambda e: btn.config(bg=color_bg))
+
+    return btn
+
+
+def crear_tarjeta(parent, **kwargs) -> tk.Frame:
+    """Crea un frame tipo tarjeta blanca con borde suave."""
+    return tk.Frame(
+        parent,
+        bg=COLOR_TARJETA,
+        highlightbackground=COLOR_BORDE_TARJETA,
+        highlightthickness=1,
+        padx=kwargs.get("padx", 24),
+        pady=kwargs.get("pady", 20),
+    )
+
+
+def crear_separador(parent, orientacion="horizontal") -> tk.Frame:
+    """Línea separadora sutil."""
+    if orientacion == "horizontal":
+        sep = tk.Frame(parent, bg=COLOR_SEPARADOR, height=1)
+    else:
+        sep = tk.Frame(parent, bg=COLOR_SEPARADOR, width=1)
+    return sep
+
+
+def crear_treeview_zebra(parent, columnas: tuple, encabezados: list,
+                         anchos: list, anclas: list = None,
+                         alto: int = 15) -> tuple:
+    """
+    Crea un Treeview con filas alternas zebra, scrollbar vertical y
+    tags de riesgo preconfigurados.
+    Retorna (tree, frame_contenedor).
+    """
+    frame = tk.Frame(parent, bg=COLOR_FONDO_APP)
+    tree = ttk.Treeview(frame, columns=columnas, show="headings", height=alto)
+
+    if anclas is None:
+        anclas = ["w"] * len(columnas)
+
+    for i, col in enumerate(columnas):
+        tree.heading(col, text=encabezados[i])
+        tree.column(col, width=anchos[i], anchor=anclas[i])
+
+    # Tags para filas alternas
+    tree.tag_configure("par", background=COLOR_FILA_PAR)
+    tree.tag_configure("impar", background=COLOR_FILA_IMPAR)
+    # Tags para alertas de riesgo (Art. 109 RGLOE)
+    tree.tag_configure("alerta_riesgo", background=COLOR_ALERTA_RIESGO_BG, foreground=COLOR_ALERTA_RIESGO_FG)
+    tree.tag_configure("regular", background=COLOR_FILA_PAR, foreground=COLOR_TEXTO_PRINCIPAL)
+    # Tags para asistencia
+    tree.tag_configure("presente", foreground="#27AE60")
+    tree.tag_configure("ausente", foreground="#C0392B")
+    tree.tag_configure("justificado", foreground="#D35400")
+
+    scrollbar_v = ttk.Scrollbar(frame, orient="vertical", command=tree.yview)
+    tree.configure(yscrollcommand=scrollbar_v.set)
+
+    tree.pack(side="left", fill="both", expand=True)
+    scrollbar_v.pack(side="right", fill="y")
+
+    return tree, frame
+
+
+def insertar_fila_zebra(tree: ttk.Treeview, valores: tuple, tag_extra: str = None):
+    """Inserta una fila aplicando automáticamente el patrón zebra."""
+    idx = len(tree.get_children())
+    tag_zebra = "par" if idx % 2 == 0 else "impar"
+    tags = (tag_extra,) if tag_extra else (tag_zebra,)
+    tree.insert("", "end", values=valores, tags=tags)
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 6. COMPONENTE TOOLTIP (AYUDA VISUAL)
+# ═══════════════════════════════════════════════════════════════════
 class AyudaVisual:
     """
-    Implementación de Tooltips (mensajes emergentes) para componentes de Tkinter.
-    
-    Esta clase gestiona la aparición y desaparición de pequeñas ventanas flotantes
-    con información contextual cuando el usuario posiciona el puntero del ratón
-    sobre un widget específico.
+    Tooltips estilizados que aparecen al pasar el mouse sobre un widget.
     """
 
-    def __init__(self, widget, texto):
-        """
-        Inicializa la ayuda visual para un widget determinado.
-
-        Args:
-            widget (tk.Widget): El componente de la interfaz al que se asociará la ayuda.
-            texto (str): El mensaje informativo que se mostrará al usuario.
-        """
+    def __init__(self, widget, texto: str):
         self.widget = widget
         self.texto = texto
         self.ventana_ayuda = None
-        
-        # Vinculación de eventos del ratón para controlar el ciclo de vida del tooltip
         self.widget.bind("<Enter>", self.mostrar_cartel)
         self.widget.bind("<Leave>", self.ocultar_cartel)
 
     def mostrar_cartel(self, event=None):
-        """
-        Calcula la posición y crea la ventana flotante con el texto de ayuda.
-
-        Utiliza las coordenadas globales del widget para posicionar la ventana
-        emergente ligeramente desplazada del cursor.
-
-        Args:
-            event (tk.Event, opcional): Evento de entrada del ratón disparado por el widget.
-        """
-        # Intenta obtener coordenadas del cursor; no todos los widgets soportan 'insert'
         try:
             x, y, _, _ = self.widget.bbox("insert")
         except Exception:
-            # Si no existe, posicionamos cerca del widget
             x, y = 0, 0
-        
-        # Calcula la posición absoluta en la pantalla
+
         x = x + self.widget.winfo_rootx() + 25
         y = y + self.widget.winfo_rooty() + 25
-        
-        # Creación de una ventana de nivel superior (TopLevel) sin decoraciones de SO
+
         self.ventana_ayuda = tk.Toplevel(self.widget)
-        self.ventana_ayuda.wm_overrideredirect(True) 
+        self.ventana_ayuda.wm_overrideredirect(True)
         self.ventana_ayuda.wm_geometry(f"+{x}+{y}")
-        
-        # Configuración visual del contenedor del texto
-        label = tk.Label(self.ventana_ayuda, text=self.texto, justify='left',
-                         background="#ffffe0", relief='solid', borderwidth=1,
-                         font=("tahoma", "8", "normal"))
-        label.pack(ipadx=1)
+
+        label = tk.Label(
+            self.ventana_ayuda,
+            text=self.texto,
+            justify="left",
+            background="#FFFDE7",
+            foreground=COLOR_TEXTO_PRINCIPAL,
+            relief="solid",
+            borderwidth=1,
+            font=FUENTE_TOOLTIP,
+            padx=8,
+            pady=4,
+        )
+        label.pack()
 
     def ocultar_cartel(self, event=None):
-        """
-        Destruye la ventana de ayuda actual y libera el recurso.
-
-        Args:
-            event (tk.Event, opcional): Evento de salida del ratón disparado por el widget.
-        """
         if self.ventana_ayuda:
             self.ventana_ayuda.destroy()
             self.ventana_ayuda = None
 
 
+# ═══════════════════════════════════════════════════════════════════
+# 7. NAVEGACIÓN POR TECLADO
+# ═══════════════════════════════════════════════════════════════════
 def enfocar_siguiente(event):
-    """
-    Gestiona el cambio de foco entre componentes mediante el teclado.
-
-    Esta función permite que el usuario navegue a través de los campos de entrada
-    presionando la tecla 'Enter' en lugar de la tecla 'Tab'.
-
-    Args:
-        event (tk.Event): Evento de teclado originado en el widget actual.
-
-    Returns:
-        str: "break", indicando a Tkinter que detenga la propagación del evento
-             y evite comportamientos por defecto (como saltos de línea en Text widgets).
-    """
-    # Localiza el siguiente widget en el orden de tabulación y le otorga el foco
+    """Permite navegar entre campos con la tecla Enter."""
     event.widget.tk_focusNext().focus()
     return "break"
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 8. UTILIDADES INTERNAS
+# ═══════════════════════════════════════════════════════════════════
+def _oscurecer_color(hex_color: str, factor: float = 0.85) -> str:
+    """Oscurece un color hexadecimal para efecto hover."""
+    try:
+        hex_color = hex_color.lstrip("#")
+        r, g, b = int(hex_color[:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
+        r = int(r * factor)
+        g = int(g * factor)
+        b = int(b * factor)
+        return f"#{r:02x}{g:02x}{b:02x}"
+    except Exception:
+        return hex_color

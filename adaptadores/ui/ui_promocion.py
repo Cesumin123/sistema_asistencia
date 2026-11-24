@@ -1,8 +1,8 @@
 # adaptadores/ui/ui_promocion.py
 """
 Adaptador de Interfaz de Usuario para Promoción Anual en Cascada (RF-16).
-Completamente desacoplado de SQL: interactúa únicamente con el puerto
-PuertoRepositorioPromocion y el servicio de dominio ServicioPromocionDominio.
+Desacoplado de SQL. Confirmación visual destacada de alto riesgo,
+alertas claras y verificación de clave maestra a través del dominio.
 """
 
 import tkinter as tk
@@ -11,19 +11,25 @@ from typing import Optional
 
 from puertos.repositorio_promocion import PuertoRepositorioPromocion
 from dominio.promocion import ServicioPromocionDominio
+from adaptadores.ui.utilidades_ui import (
+    centrar_ventana, maximizar_ventana,
+    COLOR_FONDO_APP, COLOR_TARJETA, COLOR_PRIMARIO, COLOR_PELIGRO,
+    COLOR_PELIGRO_HOVER, COLOR_TEXTO_PRINCIPAL, COLOR_TEXTO_SECUNDARIO,
+    COLOR_TEXTO_CLARO, COLOR_SEPARADOR,
+    FUENTE_TITULO, FUENTE_SUBTITULO, FUENTE_ENCABEZADO,
+    FUENTE_CUERPO, FUENTE_CUERPO_BOLD, FUENTE_ETIQUETA,
+    FUENTE_PEQUEÑA, FUENTE_PEQUEÑA_BOLD,
+    crear_boton, crear_tarjeta, crear_separador,
+    crear_treeview_zebra, insertar_fila_zebra,
+)
 
 
 class UIPromocion:
-    """
-    Interfaz gráfica para el cierre del año escolar y promoción en cascada descendente.
-    """
+    """Interfaz gráfica para el cierre del año escolar y promoción en cascada."""
 
-    def __init__(
-        self,
-        repo_promocion: PuertoRepositorioPromocion,
-        parent: Optional[tk.Widget] = None,
-        usuario_actual: str = "ADMIN"
-    ):
+    def __init__(self, repo_promocion: PuertoRepositorioPromocion,
+                 parent: Optional[tk.Widget] = None,
+                 usuario_actual: str = "ADMIN"):
         self.repo = repo_promocion
         self.usuario_actual = usuario_actual
 
@@ -35,170 +41,108 @@ class UIPromocion:
             except Exception:
                 self.root = tk.Tk()
 
-        self.root.title("Cierre y Promoción de Año Escolar (Hexagonal)")
-        self.root.geometry("750x600")
-        try:
-            self.root.state('zoomed')
-        except Exception:
-            pass
+        self.root.title("Cierre y Promoción de Año Escolar")
+        self.root.config(bg=COLOR_FONDO_APP)
+        centrar_ventana(self.root, 800, 650)
+        maximizar_ventana(self.root)
 
         self._crear_interfaz()
         self.cargar_vista_previa()
 
     def _crear_interfaz(self):
-        """Construye los widgets de advertencia, vista previa y botones de acción."""
-        # Panel superior de advertencia en color rojo/peligro
-        frame_alerta = tk.Frame(self.root, bg="#c0392b", pady=15)
-        frame_alerta.pack(fill="x")
+        # ═══ BANNER DE ADVERTENCIA ROJO ═══
+        f_alerta = tk.Frame(self.root, bg=COLOR_PELIGRO, pady=15)
+        f_alerta.pack(fill="x")
 
-        tk.Label(
-            frame_alerta,
-            text="⚠️ ZONA DE ALTO RIESGO — CIERRE DE AÑO ESCOLAR",
-            font=("Arial", 16, "bold"),
-            fg="white",
-            bg="#c0392b"
-        ).pack()
+        tk.Label(f_alerta, text="⚠️  ZONA DE ALTO RIESGO — CIERRE DE AÑO ESCOLAR", font=FUENTE_SUBTITULO, fg=COLOR_TEXTO_CLARO, bg=COLOR_PELIGRO).pack()
 
-        texto_advertencia = (
-            "Esta operación promueve a todos los alumnos ACTIVOS al grado inmediato superior:\n"
-            "• 5to Año pasa a 6to Año (GRADUADO).\n"
-            "• 4to Año pasa a 5to Año | 3ro a 4to | 2do a 3ro | 1ro a 2do.\n"
+        texto_adv = (
+            "Esta operación promueve a todos los alumnos ACTIVOS al grado superior:\n"
+            "• 5to → GRADUADO  |  4to → 5to  |  3ro → 4to  |  2do → 3ro  |  1ro → 2do\n"
             "• Los estudiantes inactivos no son alterados.\n"
-            "¡Esta acción es irreversible y requiere la Clave Maestra Administrativa!"
+            "¡Esta acción es IRREVERSIBLE y requiere la Clave Maestra!"
         )
-        tk.Label(
-            frame_alerta,
-            text=texto_advertencia,
-            font=("Arial", 10),
-            fg="#fdfefe",
-            bg="#c0392b",
-            justify="center"
-        ).pack(pady=8)
+        tk.Label(f_alerta, text=texto_adv, font=FUENTE_PEQUEÑA, fg="#FDFEFE", bg=COLOR_PELIGRO, justify="center").pack(pady=8)
 
-        # Contenedor central para la vista previa por grado
-        frame_central = tk.Frame(self.root, padx=25, pady=15)
-        frame_central.pack(fill="both", expand=True)
+        # ═══ VISTA PREVIA ═══
+        f_central = tk.Frame(self.root, bg=COLOR_FONDO_APP, padx=25, pady=15)
+        f_central.pack(fill="both", expand=True)
 
-        tk.Label(
-            frame_central,
-            text="Vista Previa de Alumnos Activos por Grado Actual:",
-            font=("Arial", 11, "bold"),
-            fg="#2c3e50"
-        ).pack(anchor="w", pady=5)
+        tk.Label(f_central, text="Vista Previa de Alumnos Activos por Grado:", font=FUENTE_ETIQUETA, fg=COLOR_TEXTO_PRINCIPAL, bg=COLOR_FONDO_APP).pack(anchor="w", pady=5)
 
-        columnas = ("id_grado", "grado", "alumnos_activos", "destino")
-        self.tree = ttk.Treeview(frame_central, columns=columnas, show="headings", height=8)
+        cols = ("id_grado", "grado", "alumnos_activos", "destino")
+        enc = ["ID", "Grado / Año Actual", "Alumnos Activos", "Destino tras Promoción"]
+        anch = [40, 220, 120, 220]
+        anclas = ["center", "w", "center", "w"]
 
-        self.tree.heading("id_grado", text="ID")
-        self.tree.column("id_grado", width=40, anchor="center")
-        self.tree.heading("grado", text="Grado / Año Actual")
-        self.tree.column("grado", width=220, anchor="w")
-        self.tree.heading("alumnos_activos", text="Alumnos Activos")
-        self.tree.column("alumnos_activos", width=120, anchor="center")
-        self.tree.heading("destino", text="Destino tras Promoción")
-        self.tree.column("destino", width=220, anchor="w")
+        self.tree, frame_tree = crear_treeview_zebra(f_central, cols, enc, anch, anclas, alto=8)
+        frame_tree.pack(fill="both", expand=True)
 
-        self.tree.pack(fill="both", expand=True)
-
-        # Botón para refrescar vista previa
-        f_refresh = tk.Frame(frame_central, pady=5)
+        # Refrescar
+        f_refresh = tk.Frame(f_central, bg=COLOR_FONDO_APP, pady=5)
         f_refresh.pack(fill="x")
-        tk.Button(
-            f_refresh,
-            text="🔄 Refrescar Censo",
-            command=self.cargar_vista_previa,
-            cursor="hand2"
-        ).pack(side="right")
+        crear_boton(f_refresh, "🔄 Refrescar Censo", self.cargar_vista_previa, "#95A5A6", COLOR_TEXTO_CLARO).pack(side="right")
 
-        # Botonera de Ejecución protegida
-        frame_accion = tk.Frame(self.root, pady=20)
-        frame_accion.pack()
+        # ═══ BOTÓN DE EJECUCIÓN ═══
+        f_accion = tk.Frame(self.root, bg=COLOR_FONDO_APP, pady=15)
+        f_accion.pack()
 
-        self.btn_ejecutar = tk.Button(
-            frame_accion,
-            text="🔒 EJECUTAR PROMOCIÓN EN CASCADA",
-            font=("Arial", 12, "bold"),
-            bg="#c0392b",
-            fg="white",
-            padx=20,
-            pady=10,
-            cursor="hand2",
-            command=self.solicitar_promocion
-        )
-        self.btn_ejecutar.pack()
+        crear_boton(
+            f_accion, "🔒  EJECUTAR PROMOCIÓN EN CASCADA",
+            self.solicitar_promocion, COLOR_PELIGRO, COLOR_TEXTO_CLARO,
+            COLOR_PELIGRO_HOVER,
+            fuente=FUENTE_ENCABEZADO,
+        ).pack(ipady=6, ipadx=20)
 
     def cargar_vista_previa(self):
-        """Carga en el Treeview la cantidad de alumnos por grado actual."""
         for item in self.tree.get_children():
             self.tree.delete(item)
 
         mapa_destinos = {
-            1: "2do AÑO",
-            2: "3er AÑO",
-            3: "4to AÑO",
-            4: "5to AÑO",
-            5: "GRADUADO / EGRESADO",
-            6: "Ya Graduado (Sin Cambio)"
+            1: "2do AÑO", 2: "3er AÑO", 3: "4to AÑO",
+            4: "5to AÑO", 5: "GRADUADO / EGRESADO", 6: "Ya Graduado (Sin Cambio)",
         }
 
         try:
             resumen = self.repo.obtener_resumen_grados()
             for r in resumen:
                 destino = mapa_destinos.get(r.id_grado, "Sin Cambio")
-                self.tree.insert(
-                    "", "end",
-                    values=(r.id_grado, r.descripcion, r.total_estudiantes, destino)
-                )
+                insertar_fila_zebra(self.tree, (r.id_grado, r.descripcion, r.total_estudiantes, destino))
         except Exception as error:
             messagebox.showerror("Error", f"No se pudo cargar la vista previa: {error}")
 
     def solicitar_promocion(self):
-        """
-        Flujo de doble verificación de seguridad:
-        1. Confirmación de intención.
-        2. Solicitud y validación de la Clave Maestra.
-        3. Ejecución atómica en base de datos.
-        """
-        # Paso 1: Confirmación de advertencia
         confirmado = messagebox.askyesno(
             "Confirmación Crítica",
-            "¿Está completamente seguro de promover a todos los estudiantes activos al siguiente año escolar?\n\n"
-            "Esta operación modificará los registros de la institución y no se puede deshacer.",
-            icon="warning"
+            "¿Está completamente seguro de promover a todos los estudiantes activos?\n\n"
+            "Esta operación modifica los registros y NO se puede deshacer.",
+            icon="warning",
         )
         if not confirmado:
             return
 
-        # Paso 2: Solicitud de Clave Maestra
         clave = simpledialog.askstring(
             "Autorización Administrativa",
             "Ingrese la CLAVE MAESTRA para autorizar la promoción:",
-            show="*",
-            parent=self.root
+            show="*", parent=self.root,
         )
-
         if not clave:
-            messagebox.showinfo("Cancelado", "Operación cancelada. No se ingresó clave de seguridad.")
+            messagebox.showinfo("Cancelado", "Operación cancelada.")
             return
 
-        # Paso 3: Validación a través del Servicio de Dominio
         try:
             ServicioPromocionDominio.validar_autorizacion(clave)
         except PermissionError as perm_err:
             messagebox.showerror("Acceso Denegado", str(perm_err))
             return
 
-        # Paso 4: Ejecución a través del Adaptador de Persistencia
         try:
             resultado = self.repo.ejecutar_promocion_cascada(usuario_responsable=self.usuario_actual)
-            messagebox.showinfo(
-                "¡Proceso Exitoso!",
-                f"{resultado.mensaje}\n\n¡Feliz Nuevo Año Escolar!"
-            )
+            messagebox.showinfo("¡Proceso Exitoso!", f"{resultado.mensaje}\n\n¡Feliz Nuevo Año Escolar!")
             self.cargar_vista_previa()
         except Exception as error:
-            messagebox.showerror("Fallo Crítico", f"Error al ejecutar la promoción: {error}")
+            messagebox.showerror("Fallo Crítico", f"Error al ejecutar: {error}")
 
 
-# Alias para compatibilidad
+# Alias
 GestorPromocionUI = UIPromocion
