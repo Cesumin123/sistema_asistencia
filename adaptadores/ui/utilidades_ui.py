@@ -13,6 +13,31 @@ Módulo central que define:
 import tkinter as tk
 from tkinter import ttk
 import platform
+import subprocess
+import os
+from typing import Optional
+
+def abrir_archivo_sistema(ruta_archivo: str) -> bool:
+    """
+    Abre un archivo con el visor predeterminado del sistema operativo
+    de forma segura y no bloqueante (Windows, Linux, macOS).
+    """
+    if not ruta_archivo or not os.path.exists(ruta_archivo):
+        return False
+    try:
+        so = platform.system()
+        if so == "Windows":
+            os.startfile(ruta_archivo)
+            return True
+        elif so == "Darwin":
+            subprocess.Popen(["open", ruta_archivo])
+            return True
+        else:
+            subprocess.Popen(["xdg-open", ruta_archivo])
+            return True
+    except Exception as e:
+        print(f"Aviso abrir archivo: {e}")
+        return False
 
 # ═══════════════════════════════════════════════════════════════════
 # 1. PALETA INSTITUCIONAL
@@ -187,6 +212,95 @@ def maximizar_ventana(ventana: tk.Tk | tk.Toplevel):
                 ventana.geometry(f"{sw}x{sh}+0+0")
             except Exception:
                 pass
+
+
+def configurar_ventana_hija(ventana: tk.Toplevel, padre: Optional[tk.Misc] = None):
+    """Configura transient, lift y foco para ventanas secundarias en Linux/Windows."""
+    if padre and hasattr(padre, "winfo_exists") and padre.winfo_exists():
+        try:
+            ventana.transient(padre)
+        except Exception:
+            pass
+    try:
+        ventana.lift()
+        ventana.focus_set()
+    except Exception:
+        pass
+
+
+def restaurar_foco(widget: tk.Misc):
+    """Devuelve el foco y eleva la ventana toplevel actual tras cerrar un diálogo."""
+    try:
+        if widget and hasattr(widget, "winfo_toplevel"):
+            top = widget.winfo_toplevel()
+            if top and hasattr(top, "winfo_exists") and top.winfo_exists():
+                top.lift()
+                top.focus_force()
+    except Exception:
+        pass
+
+
+def agregar_barra_superior_volver(ventana: tk.Toplevel, padre: Optional[tk.Misc] = None, titulo: str = "") -> tk.Frame:
+    """
+    Agrega una barra superior mínima y uniforme con botón '← Volver al Panel'
+    que destruye la ventana secundaria y devuelve el foco a la ventana principal.
+    """
+    barra = tk.Frame(ventana, bg=COLOR_SIDEBAR_HEADER, height=36)
+    
+    # Ubicarla al tope de la ventana de forma segura
+    try:
+        slaves = ventana.pack_slaves()
+        if slaves:
+            barra.pack(side="top", fill="x", before=slaves[0])
+        else:
+            barra.pack(side="top", fill="x")
+    except Exception:
+        try:
+            barra.pack(side="top", fill="x")
+        except Exception:
+            pass
+
+    def volver():
+        try:
+            ventana.destroy()
+        finally:
+            if padre and hasattr(padre, "winfo_exists") and padre.winfo_exists():
+                try:
+                    padre.lift()
+                    padre.focus_force()
+                except Exception:
+                    pass
+
+    btn_volver = tk.Button(
+        barra,
+        text="← Volver al Panel",
+        font=FUENTE_PEQUEÑA_BOLD,
+        bg=COLOR_PRIMARIO,
+        fg=COLOR_TEXTO_CLARO,
+        activebackground=COLOR_PRIMARIO_HOVER,
+        activeforeground=COLOR_TEXTO_CLARO,
+        relief="flat",
+        bd=0,
+        padx=12,
+        pady=4,
+        cursor="hand2",
+        command=volver,
+    )
+    btn_volver.pack(side="left", padx=10, pady=4)
+    btn_volver.bind("<Enter>", lambda e: btn_volver.config(bg=COLOR_PRIMARIO_HOVER))
+    btn_volver.bind("<Leave>", lambda e: btn_volver.config(bg=COLOR_PRIMARIO))
+
+    if titulo:
+        lbl_tit = tk.Label(
+            barra,
+            text=titulo,
+            font=FUENTE_PEQUEÑA_BOLD,
+            bg=COLOR_SIDEBAR_HEADER,
+            fg="#BDC3C7"
+        )
+        lbl_tit.pack(side="left", padx=10)
+
+    return barra
 
 
 # ═══════════════════════════════════════════════════════════════════

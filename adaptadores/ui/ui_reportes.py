@@ -25,6 +25,7 @@ from adaptadores.ui.utilidades_ui import (
     FUENTE_PEQUEÑA, FUENTE_PEQUEÑA_BOLD,
     crear_boton, crear_tarjeta, crear_separador,
     crear_treeview_zebra, insertar_fila_zebra,
+    configurar_ventana_hija, restaurar_foco,
 )
 
 
@@ -148,7 +149,8 @@ class UIReportes:
 
         if not registros:
             self.lbl_resumen.config(text="Sin registros en el lapso consultado.", fg=COLOR_TEXTO_SECUNDARIO)
-            messagebox.showinfo("Sin Resultados", "No se encontraron registros para el período consultado.")
+            messagebox.showinfo("Sin Resultados", "No se encontraron registros para el período consultado.", parent=self.root)
+            restaurar_foco(self.root)
             return
 
         resumenes = AnalizadorEstadistico.generar_resumen_estudiantes(registros)
@@ -191,7 +193,8 @@ class UIReportes:
     def buscar_por_cedula(self):
         ced = self.entry_cedula.get().strip()
         if not ced:
-            messagebox.showwarning("Campo Vacío", "Ingrese una cédula o identificador.")
+            messagebox.showwarning("Campo Vacío", "Ingrese una cédula o identificador.", parent=self.root)
+            restaurar_foco(self.root)
             return
         self.contexto_actual = f"HISTORIAL_{ced}"
         self.info_contexto = f"Estudiante: {ced}"
@@ -199,7 +202,8 @@ class UIReportes:
 
     def mostrar_alertas_riesgo(self):
         if not self.registros_actuales:
-            messagebox.showinfo("Información", "Primero realice una búsqueda.")
+            messagebox.showinfo("Información", "Primero realice una búsqueda.", parent=self.root)
+            restaurar_foco(self.root)
             return
 
         alertas = AnalizadorEstadistico.detectar_riesgo(self.registros_actuales)
@@ -207,6 +211,7 @@ class UIReportes:
         win.title("Alertas de Riesgo — Art. 109 RGLOE")
         win.config(bg=COLOR_FONDO_APP)
         centrar_ventana(win, 800, 500)
+        configurar_ventana_hija(win, self.root)
 
         tk.Label(win, text="⚠️  ALUMNOS EN RIESGO DE REPROBACIÓN (< 75%)", font=FUENTE_SUBTITULO, fg=COLOR_PELIGRO, bg=COLOR_FONDO_APP, pady=10).pack()
 
@@ -230,10 +235,17 @@ class UIReportes:
 
     def generar_pdf(self):
         if not self.registros_actuales:
-            messagebox.showwarning("Sin Datos", "Primero realice una búsqueda antes de exportar.")
+            messagebox.showwarning("Sin Datos", "Primero realice una búsqueda antes de exportar.", parent=self.root)
+            restaurar_foco(self.root)
             return
         nombre_sugerido = f"Reporte_{self.contexto_actual}.pdf".replace(" ", "_")
-        ruta = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF", "*.pdf")], initialfile=nombre_sugerido)
+        ruta = filedialog.asksaveasfilename(
+            parent=self.root,
+            defaultextension=".pdf",
+            filetypes=[("PDF", "*.pdf")],
+            initialfile=nombre_sugerido
+        )
+        restaurar_foco(self.root)
         if not ruta:
             return
         try:
@@ -241,11 +253,13 @@ class UIReportes:
             datos_filas = [[str(v) for v in self.tree.item(item)['values']] for item in self.tree.get_children()]
             titulo = f"REPORTE DE ASISTENCIA: {self.contexto_actual.replace('_', ' ')}"
             if self.exportador.exportar_tabla(titulo, encabezados, datos_filas, ruta):
-                messagebox.showinfo("Éxito", f"Reporte PDF generado en:\n{ruta}")
+                messagebox.showinfo("Éxito", f"Reporte PDF generado en:\n{ruta}", parent=self.root)
             else:
-                messagebox.showerror("Error", "No se pudo generar el PDF.")
+                messagebox.showerror("Error", "No se pudo generar el PDF.", parent=self.root)
         except Exception as error:
-            messagebox.showerror("Error", f"Fallo al exportar: {error}")
+            messagebox.showerror("Error", f"Fallo al exportar: {error}", parent=self.root)
+        finally:
+            restaurar_foco(self.root)
 
 
 # Alias

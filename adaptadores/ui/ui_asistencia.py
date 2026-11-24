@@ -25,6 +25,7 @@ from adaptadores.ui.utilidades_ui import (
     FUENTE_PEQUEÑA, FUENTE_PEQUEÑA_BOLD, FUENTE_BOTON,
     crear_boton, crear_tarjeta, crear_separador,
     crear_treeview_zebra, insertar_fila_zebra,
+    configurar_ventana_hija, restaurar_foco, agregar_barra_superior_volver,
 )
 
 
@@ -34,10 +35,11 @@ from adaptadores.ui.utilidades_ui import (
 class ControladorAsistencia:
     """Controlador MVC que orquesta la interacción entre UI y dominio."""
 
-    def __init__(self, repo_asistencia, respaldo_emergencia, repo_clase):
+    def __init__(self, repo_asistencia, respaldo_emergencia, repo_clase, parent=None):
         self.repo = repo_asistencia
         self.respaldo = respaldo_emergencia
         self.repo_clase = repo_clase  # ← Inyección hexagonal (ya no SQL directo)
+        self.parent = parent
 
         self.planilla_actual: Optional[PlanillaAsistencia] = None
         self.nombres_estudiantes: Dict[str, str] = {}
@@ -46,15 +48,19 @@ class ControladorAsistencia:
         """Obtiene las clases a través del repositorio (sin SQL)."""
         return self.repo_clase.obtener_clases_disponibles()
 
-    def iniciar_seleccion(self):
+    def iniciar_seleccion(self, parent=None):
         """Inicia el proceso de selección de clase."""
+        if parent:
+            self.parent = parent
         datos = self.obtener_clases_disponibles()
         if not datos:
-            messagebox.showerror("Error", "No hay clases disponibles en el sistema.")
+            messagebox.showerror("Error", "No hay clases disponibles en el sistema.", parent=self.parent)
+            if self.parent:
+                restaurar_foco(self.parent)
             return
         ids = [d[0] for d in datos]
         nombres = [d[1] for d in datos]
-        SelectorClaseUI(self, nombres, ids).mostrar()
+        SelectorClaseUI(self, nombres, ids, parent=self.parent).mostrar()
 
     def preparar_planilla(self, id_clase: int, fecha_str: str, nombre_clase: str):
         """Prepara la planilla antes de mostrar."""
@@ -65,7 +71,10 @@ class ControladorAsistencia:
                 "Recuperación",
                 "¡ATENCIÓN! Se encontró una lista sin guardar del apagón.\n"
                 "¿Deseas recuperar lo que llevabas?",
+                parent=self.parent
             )
+            if self.parent:
+                restaurar_foco(self.parent)
             if resp:
                 self.planilla_actual = planilla_recuperada
                 ids = [reg.id_estudiante for reg in self.planilla_actual.registros]
@@ -76,7 +85,7 @@ class ControladorAsistencia:
         else:
             self._crear_planilla_nueva(id_clase, fecha_str)
 
-        PlanillaUI(self, self.planilla_actual, self.nombres_estudiantes, nombre_clase).mostrar()
+        PlanillaUI(self, self.planilla_actual, self.nombres_estudiantes, nombre_clase, parent=self.parent).mostrar()
 
     def _crear_planilla_nueva(self, id_clase: int, fecha_str: str):
         """Crea planilla consultando estudiantes a través del repositorio."""
@@ -102,7 +111,9 @@ class ControladorAsistencia:
             self.respaldo.limpiar_respaldo()
             return True
         except Exception as e:
-            messagebox.showerror("Error", f"Error al guardar: {str(e)}")
+            messagebox.showerror("Error", f"Error al guardar: {str(e)}", parent=self.parent)
+            if self.parent:
+                restaurar_foco(self.parent)
             return False
 
 
@@ -112,15 +123,17 @@ class ControladorAsistencia:
 class SelectorClaseUI:
     """Vista para seleccionar clase y fecha."""
 
-    def __init__(self, controlador: ControladorAsistencia, clases: List[str], ids: List[int]):
+    def __init__(self, controlador: ControladorAsistencia, clases: List[str], ids: List[int], parent=None):
         self.controlador = controlador
         self.clases = clases
         self.ids = ids
 
-        self.root = tk.Toplevel()
+        self.root = tk.Toplevel(parent) if parent else tk.Toplevel()
         self.root.title("Seleccionar Clase — Pase de Lista")
         self.root.config(bg=COLOR_FONDO_APP)
         centrar_ventana(self.root, 550, 380)
+        configurar_ventana_hija(self.root, parent)
+        agregar_barra_superior_volver(self.root, parent, "Asistencia")
 
     def mostrar(self):
         contenedor = tk.Frame(self.root, bg=COLOR_FONDO_APP)
@@ -167,17 +180,19 @@ class PlanillaUI:
     """Vista para mostrar y editar la planilla de asistencia."""
 
     def __init__(self, controlador: ControladorAsistencia, planilla: PlanillaAsistencia,
-                 nombres: Dict[str, str], nombre_clase: str):
+                 nombres: Dict[str, str], nombre_clase: str, parent=None):
         self.controlador = controlador
         self.planilla = planilla
         self.nombres = nombres
         self.nombre_clase = nombre_clase
 
-        self.win = tk.Toplevel()
+        self.win = tk.Toplevel(parent) if parent else tk.Toplevel()
         self.win.title("Planilla de Asistencia — Pase de Lista")
         self.win.config(bg=COLOR_FONDO_APP)
         centrar_ventana(self.win, 900, 650)
         maximizar_ventana(self.win)
+        configurar_ventana_hija(self.win, parent)
+        agregar_barra_superior_volver(self.win, parent, f"Planilla: {nombre_clase}")
 
         self.tree = None
         self.lbl_stats = None
@@ -248,7 +263,8 @@ class PlanillaUI:
     def _cambiar_seleccionados(self, nuevo_estado: EstadoAsistencia):
         seleccion = self.tree.selection()
         if not seleccion:
-            messagebox.showinfo("Info", "Selecciona al menos un estudiante.")
+            messagebox.showinfo("Info", "Selecciona al menos un estudiante.", parent=self.win)
+            restaurar_foco(self.win)
             return
         for item in seleccion:
             cedula = self.tree.item(item, "values")[0]
@@ -256,6 +272,7 @@ class PlanillaUI:
             if nuevo_estado == EstadoAsistencia.JUSTIFICADO:
                 nombre = self.nombres.get(cedula, "Estudiante")
                 motivo = simpledialog.askstring("Motivo", f"¿Por qué faltó {nombre}?", parent=self.win)
+                restaurar_foco(self.win)
                 if not motivo:
                     continue
             self.controlador.cambiar_estado(cedula, nuevo_estado, motivo)
@@ -280,12 +297,15 @@ class PlanillaUI:
 
     def _guardar(self):
         if self.controlador.guardar_planilla():
-            messagebox.showinfo("Éxito", f"Se guardó la asistencia de {len(self.planilla.registros)} alumnos.")
+            messagebox.showinfo("Éxito", f"Se guardó la asistencia de {len(self.planilla.registros)} alumnos.", parent=self.win)
+            restaurar_foco(self.win)
             self.win.destroy()
 
     def _cerrar_sin_guardar(self):
-        if messagebox.askyesno("Confirmar", "¿Cerrar sin guardar? Se perderán los cambios."):
+        if messagebox.askyesno("Confirmar", "¿Cerrar sin guardar? Se perderán los cambios.", parent=self.win):
             self.win.destroy()
+        else:
+            restaurar_foco(self.win)
 
     def mostrar(self):
         self.win.mainloop()
@@ -297,7 +317,7 @@ class PlanillaUI:
 class GestorAsistenciaUI:
     """Clase de interfaz simplificada para compatibilidad con main.py."""
 
-    def __init__(self, repo_asistencia, respaldo_emergencia, repo_clase_o_conexion):
+    def __init__(self, repo_asistencia, respaldo_emergencia, repo_clase_o_conexion, parent=None):
         # Soporte defensivo: si se pasa una instancia de ConexionBD, se adapta con SQLiteRepositorioClase
         if hasattr(repo_clase_o_conexion, "conectar"):
             from adaptadores.db.sqlite_clase import SQLiteRepositorioClase
@@ -305,7 +325,7 @@ class GestorAsistenciaUI:
         else:
             repo_clase = repo_clase_o_conexion
 
-        self.controlador = ControladorAsistencia(repo_asistencia, respaldo_emergencia, repo_clase)
+        self.controlador = ControladorAsistencia(repo_asistencia, respaldo_emergencia, repo_clase, parent=parent)
 
-    def mostrar(self):
-        self.controlador.iniciar_seleccion()
+    def mostrar(self, parent=None):
+        self.controlador.iniciar_seleccion(parent=parent)

@@ -51,3 +51,10 @@ class RepositorioClase(ABC):
         Dado un listado de IDs de estudiante, retorna un diccionario {id: nombre}.
         """
         pass
+
+    @abstractmethod
+    def obtener_clases_por_profesor(self, id_profesor: int) -> list:
+        """
+        Retorna la lista de materias/clases asignadas a un docente.
+        """
+        pass

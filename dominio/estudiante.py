@@ -19,6 +19,11 @@ class Estudiante:
     id_grado: int
     id_seccion: int
     estado_activo: int = 1  # 1 = Activo, 0 = Eliminado (Borrado Lógico)
+    nombre_madre: str = ""
+    telefono_madre: str = ""
+    nombre_padre: str = ""
+    telefono_padre: str = ""
+    foto_path: str = ""
 
     def validar(self):
         """

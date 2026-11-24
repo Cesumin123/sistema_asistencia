@@ -19,7 +19,7 @@ from adaptadores.ui.utilidades_ui import (
     FUENTE_TITULO, FUENTE_SUBTITULO, FUENTE_ENCABEZADO,
     FUENTE_CUERPO, FUENTE_CUERPO_BOLD, FUENTE_ETIQUETA,
     FUENTE_PEQUEÑA, FUENTE_PEQUEÑA_BOLD,
-    crear_boton, crear_treeview_zebra, insertar_fila_zebra,
+    crear_boton, crear_treeview_zebra, insertar_fila_zebra, restaurar_foco,
 )
 
 
@@ -210,20 +210,29 @@ class UIListados:
     # ── EXPORTAR PDF ──
     def _exportar_tabla_pdf(self, tree: ttk.Treeview, titulo: str, encabezados: List[str]):
         if not tree.get_children():
-            messagebox.showwarning("Vacío", "No hay datos para exportar.")
+            messagebox.showwarning("Vacío", "No hay datos para exportar.", parent=self.root)
+            restaurar_foco(self.root)
             return
         nombre_archivo = f"{titulo.replace(' ', '_')}.pdf"
-        ruta = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF", "*.pdf")], initialfile=nombre_archivo)
+        ruta = filedialog.asksaveasfilename(
+            parent=self.root,
+            defaultextension=".pdf",
+            filetypes=[("PDF", "*.pdf")],
+            initialfile=nombre_archivo
+        )
+        restaurar_foco(self.root)
         if not ruta:
             return
         try:
             datos = [[str(v) for v in tree.item(item)['values'][:len(encabezados)]] for item in tree.get_children()]
             if self.exportador_pdf.exportar_tabla(titulo, encabezados, datos, ruta):
-                messagebox.showinfo("Éxito", f"PDF generado en:\n{ruta}")
+                messagebox.showinfo("Éxito", f"PDF generado en:\n{ruta}", parent=self.root)
             else:
-                messagebox.showerror("Error", "No se pudo generar el PDF.")
+                messagebox.showerror("Error", "No se pudo generar el PDF.", parent=self.root)
         except Exception as error:
-            messagebox.showerror("Error", f"Fallo al exportar: {error}")
+            messagebox.showerror("Error", f"Fallo al exportar: {error}", parent=self.root)
+        finally:
+            restaurar_foco(self.root)
 
 
 # Alias

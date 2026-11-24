@@ -28,9 +28,13 @@ from adaptadores.db.sqlite_listados import RepositorioListadosSQLite
 
 # Adaptadores de Documentos
 from adaptadores.documentos.pdf_reportes import ExportadorPDFReportLab
+from adaptadores.documentos.gestor_fotos import GestorFotos
 
 # Adaptadores de Interfaz de Usuario (UI)
-from adaptadores.ui.utilidades_ui import aplicar_tema_global, maximizar_ventana
+from adaptadores.ui.utilidades_ui import (
+    aplicar_tema_global, maximizar_ventana,
+    configurar_ventana_hija, agregar_barra_superior_volver,
+)
 from adaptadores.ui.ui_login import VentanaLogin
 from adaptadores.ui.ui_menu_principal import MenuPrincipalUI
 from adaptadores.ui.ui_usuario import GestorUsuariosUI
@@ -70,36 +74,75 @@ def iniciar_aplicacion():
     repo_promocion = RepositorioPromocionSQLite(conexion)
     repo_listados = RepositorioListadosSQLite(conexion)
     exportador_pdf = ExportadorPDFReportLab()
+    gestor_fotos = GestorFotos()
 
     # 3. Callbacks para la apertura de módulos
+    menu_actual = [None]
+
+    def _obtener_padre():
+        if menu_actual[0] and hasattr(menu_actual[0], "root") and menu_actual[0].root.winfo_exists():
+            return menu_actual[0].root
+        return None
+
     def abrir_academico():
-        win = tk.Toplevel()
+        padre = _obtener_padre()
+        win = tk.Toplevel(padre)
         win.title("Gestión Académica - Profesores y Clases")
         win.geometry("900x600")
         maximizar_ventana(win)
+        configurar_ventana_hija(win, padre)
+        agregar_barra_superior_volver(win, padre, "Módulo Académico")
         nb = ttk.Notebook(win)
         nb.pack(fill="both", expand=True, padx=10, pady=10)
-        GestorProfesoresUI(nb, repo_profesor)
+        GestorProfesoresUI(
+            nb, repo_profesor,
+            exportador_pdf=exportador_pdf,
+            gestor_fotos=gestor_fotos,
+            repositorio_clase=repo_clase
+        )
         GestorClasesUI(nb, repo_clase)
 
     def abrir_estudiantes():
-        UIEstudiante(repo_estudiante)
+        padre = _obtener_padre()
+        ui = UIEstudiante(
+            repo_estudiante,
+            parent=padre,
+            exportador_pdf=exportador_pdf,
+            gestor_fotos=gestor_fotos,
+            repositorio_reportes=repo_reportes
+        )
+        configurar_ventana_hija(ui.root, padre)
+        agregar_barra_superior_volver(ui.root, padre, "Módulo de Estudiantes")
 
     def abrir_asistencia():
-        ui_asist = GestorAsistenciaUI(repo_asistencia, respaldo_asistencia, repo_clase)
-        ui_asist.mostrar()
+        padre = _obtener_padre()
+        ui_asist = GestorAsistenciaUI(repo_asistencia, respaldo_asistencia, repo_clase, parent=padre)
+        ui_asist.mostrar(parent=padre)
 
     def abrir_listados():
-        UIListados(repo_listados, exportador_pdf)
+        padre = _obtener_padre()
+        ui = UIListados(repo_listados, exportador_pdf, parent=padre)
+        configurar_ventana_hija(ui.root, padre)
+        agregar_barra_superior_volver(ui.root, padre, "Módulo de Listados")
 
     def abrir_reportes():
-        UIReportes(repo_reportes, exportador_pdf)
+        padre = _obtener_padre()
+        ui = UIReportes(repo_reportes, exportador_pdf, parent=padre)
+        configurar_ventana_hija(ui.root, padre)
+        agregar_barra_superior_volver(ui.root, padre, "Módulo de Reportes")
 
     def abrir_promocion():
-        UIPromocion(repo_promocion)
+        padre = _obtener_padre()
+        ui = UIPromocion(repo_promocion, parent=padre)
+        configurar_ventana_hija(ui.root, padre)
+        agregar_barra_superior_volver(ui.root, padre, "Módulo de Promoción")
 
     def abrir_usuarios():
-        GestorUsuariosUI(None, repo_usuario)
+        padre = _obtener_padre()
+        ui = GestorUsuariosUI(padre, repo_usuario)
+        if hasattr(ui, "root") and ui.root and ui.root.winfo_exists():
+            configurar_ventana_hija(ui.root, padre)
+            agregar_barra_superior_volver(ui.root, padre, "Módulo de Usuarios")
 
     callbacks_modulos = {
         MODULO_ACADEMICO: abrir_academico,
@@ -118,6 +161,7 @@ def iniciar_aplicacion():
             callbacks=callbacks_modulos,
             on_logout=mostrar_login
         )
+        menu_actual[0] = menu
         menu.root.mainloop()
 
     def mostrar_login():

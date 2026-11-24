@@ -14,7 +14,7 @@ from adaptadores.ui.utilidades_ui import (
     COLOR_TEXTO_CLARO, COLOR_SEPARADOR,
     FUENTE_SUBTITULO, FUENTE_CUERPO, FUENTE_ETIQUETA, FUENTE_PEQUEÑA,
     crear_boton, crear_tarjeta, crear_separador,
-    AyudaVisual, enfocar_siguiente,
+    AyudaVisual, enfocar_siguiente, restaurar_foco,
 )
 
 
@@ -85,11 +85,6 @@ class GestorClasesUI:
         self.listbox_secciones.pack(side="left")
         scroll_sec.pack(side="right", fill="y")
 
-        secciones_default = ["Sección A", "Sección B", "Sección C", "Sección D", "Sección E",
-                             "Sección F", "Sección G", "Sección H", "Sección I", "Sección J"]
-        for seccion in secciones_default:
-            self.listbox_secciones.insert(tk.END, seccion)
-
         # Botón
         crear_boton(tarjeta, "💾  INSCRIBIR MATERIA", self.guardar_click, COLOR_SECUNDARIO, COLOR_TEXTO_CLARO, COLOR_SECUNDARIO_HOVER).pack(anchor="w", pady=(15, 0))
 
@@ -109,13 +104,15 @@ class GestorClasesUI:
             self.mapa_secciones[texto_pantalla] = sec[0]
 
     def guardar_click(self):
+        parent = self.notebook.winfo_toplevel()
         materia = self.entry_nom_mat.get().strip().upper()
         prof_seleccionado = self.combo_prof.get()
         grado_seleccionado = self.combo_grado.get()
         indices_secciones = self.listbox_secciones.curselection()
 
         if not materia or not prof_seleccionado or not grado_seleccionado or not indices_secciones:
-            messagebox.showwarning("Faltan Datos", "Complete todos los campos y elija al menos una sección.")
+            messagebox.showwarning("Faltan Datos", "Complete todos los campos y elija al menos una sección.", parent=parent)
+            restaurar_foco(self.notebook)
             return
 
         try:
@@ -131,13 +128,15 @@ class GestorClasesUI:
                 lista_nuevas.append(nueva)
 
             self.repositorio.guardar_lote(lista_nuevas)
-            messagebox.showinfo("Éxito", f"Materia '{materia}' registrada para {len(lista_nuevas)} sección(es).")
+            messagebox.showinfo("Éxito", f"Materia '{materia}' registrada para {len(lista_nuevas)} sección(es).", parent=parent)
             self.entry_nom_mat.delete(0, tk.END)
             self.combo_prof.set('')
             self.combo_grado.set('')
             self.listbox_secciones.selection_clear(0, tk.END)
             self.entry_nom_mat.focus()
         except ValueError as e:
-            messagebox.showwarning("Regla de Negocio", str(e))
+            messagebox.showwarning("Regla de Negocio", str(e), parent=parent)
         except Exception as e:
-            messagebox.showerror("Error", f"Ocurrió un error inesperado: {str(e)}")
+            messagebox.showerror("Error", f"Ocurrió un error inesperado: {str(e)}", parent=parent)
+        finally:
+            restaurar_foco(self.notebook)

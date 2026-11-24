@@ -130,3 +130,23 @@ class SQLiteRepositorioClase(RepositorioClase):
             return {row[0]: row[1] for row in cur.fetchall()}
         finally:
             self.db.cerrar()
+
+    def obtener_clases_por_profesor(self, id_profesor: int) -> list:
+        """Retorna [{'materia': ..., 'grado': ..., 'seccion': ...}] para el docente."""
+        conn = self.db.conectar()
+        if not conn:
+            return []
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT C.NOMBRE_MATERIA, G.DESCRIPCION, S.DESCRIPCION "
+                "FROM TBL_CLASES C "
+                "JOIN TBL_GRADOS G ON C.ID_GRADO = G.ID_GRADO "
+                "JOIN TBL_SECCIONES S ON C.ID_SECCION = S.ID_SECCION "
+                "WHERE C.ID_PROFESOR = ? "
+                "ORDER BY G.ID_GRADO, S.DESCRIPCION, C.NOMBRE_MATERIA",
+                (id_profesor,)
+            )
+            return [{"materia": r[0], "grado": r[1], "seccion": r[2]} for r in cur.fetchall()]
+        finally:
+            self.db.cerrar()

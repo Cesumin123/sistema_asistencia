@@ -22,7 +22,7 @@ from adaptadores.ui.utilidades_ui import (
     FUENTE_PEQUEÑA, FUENTE_BOTON,
     crear_boton, crear_tarjeta, crear_separador,
     crear_treeview_zebra, insertar_fila_zebra,
-    AyudaVisual, enfocar_siguiente,
+    AyudaVisual, enfocar_siguiente, restaurar_foco,
 )
 
 
@@ -42,7 +42,9 @@ class GestorUsuariosUI:
         try:
             ServicioPromocionDominio.validar_autorizacion(clave_ingresada or "")
         except PermissionError:
-            messagebox.showerror("Acceso Denegado", "Clave incorrecta. Acceso denegado.")
+            messagebox.showerror("Acceso Denegado", "Clave incorrecta. Acceso denegado.", parent=parent_root)
+            if parent_root:
+                restaurar_foco(parent_root)
             return
 
         # Crear la ventana
@@ -152,16 +154,19 @@ class GestorUsuariosUI:
 
     def guardar(self):
         if self.usuario_seleccionado_id:
-            messagebox.showwarning("Atención", "Está intentando guardar un usuario que ya existe. Use 'Actualizar' o limpie las cajas.")
+            messagebox.showwarning("Atención", "Está intentando guardar un usuario que ya existe. Use 'Actualizar' o limpie las cajas.", parent=self.root)
+            restaurar_foco(self.root)
             return
         try:
             nuevo = self.extraer_datos_ui()
             self.repositorio.guardar(nuevo)
-            messagebox.showinfo("Éxito", "Usuario creado correctamente.")
+            messagebox.showinfo("Éxito", "Usuario creado correctamente.", parent=self.root)
             self.limpiar()
             self.cargar_tabla()
         except Exception as e:
-            messagebox.showerror("Error", str(e))
+            messagebox.showerror("Error", str(e), parent=self.root)
+        finally:
+            restaurar_foco(self.root)
 
     def actualizar(self):
         if not self.usuario_seleccionado_id:
@@ -169,23 +174,28 @@ class GestorUsuariosUI:
         try:
             editado = self.extraer_datos_ui()
             if editado.password == "********":
-                messagebox.showwarning("Clave", "Escriba una nueva contraseña para actualizar.")
+                messagebox.showwarning("Clave", "Escriba una nueva contraseña para actualizar.", parent=self.root)
+                restaurar_foco(self.root)
                 return
             self.repositorio.actualizar(editado)
-            messagebox.showinfo("Éxito", "Usuario actualizado correctamente.")
+            messagebox.showinfo("Éxito", "Usuario actualizado correctamente.", parent=self.root)
             self.limpiar()
             self.cargar_tabla()
         except Exception as e:
-            messagebox.showerror("Error", str(e))
+            messagebox.showerror("Error", str(e), parent=self.root)
+        finally:
+            restaurar_foco(self.root)
 
     def desactivar(self):
         if not self.usuario_seleccionado_id:
             return
         try:
-            if messagebox.askyesno("Confirmar", "¿Seguro que desea desactivar a este usuario?"):
+            if messagebox.askyesno("Confirmar", "¿Seguro que desea desactivar a este usuario?", parent=self.root):
                 self.repositorio.desactivar(self.usuario_seleccionado_id)
-                messagebox.showinfo("Desactivado", "Usuario revocado del sistema exitosamente.")
+                messagebox.showinfo("Desactivado", "Usuario revocado del sistema exitosamente.", parent=self.root)
                 self.limpiar()
                 self.cargar_tabla()
         except Exception as e:
-            messagebox.showerror("Error", str(e))
+            messagebox.showerror("Error", str(e), parent=self.root)
+        finally:
+            restaurar_foco(self.root)

@@ -32,3 +32,7 @@ class PuertoRepositorioEstudiante(ABC):
     def obtener_todos_activos(self) -> List[Estudiante]:
         """Devuelve una lista con todos los estudiantes cuyo estado_activo sea 1."""
         pass
+
+    def obtener_secciones(self) -> List[tuple]:
+        """Devuelve las secciones registradas (id_seccion, descripcion)."""
+        return [(i, chr(64 + i)) for i in range(1, 27)]

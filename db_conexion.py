@@ -41,6 +41,11 @@ class ConexionBD:
             
             if es_nueva:
                 self.crear_tablas_iniciales()
+            
+            # Migración idempotente en caliente para bases de datos existentes
+            cursor = self.conexion.cursor()
+            self._migrar_esquema(cursor)
+            self.conexion.commit()
                 
             return self.conexion
             
@@ -59,6 +64,53 @@ class ConexionBD:
         if hasattr(self, 'conexion') and self.conexion:
             self.conexion.close()
             self.conexion = None
+
+    def _migrar_esquema(self, cursor):
+        """
+        Migración idempotente del esquema (FASE A).
+        Verifica mediante PRAGMA table_info si existen las nuevas columnas
+        y aplica ALTER TABLE ADD COLUMN de forma segura sin alterar datos existentes.
+        """
+        # 1. TBL_PROFESORES
+        try:
+            cursor.execute("PRAGMA table_info(TBL_PROFESORES)")
+            cols_prof = {info[1] for info in cursor.fetchall()}
+            if cols_prof:
+                if "PROFESION" not in cols_prof:
+                    cursor.execute("ALTER TABLE TBL_PROFESORES ADD COLUMN PROFESION TEXT DEFAULT ''")
+                if "FOTO_PATH" not in cols_prof:
+                    cursor.execute("ALTER TABLE TBL_PROFESORES ADD COLUMN FOTO_PATH TEXT DEFAULT ''")
+        except Exception as e:
+            print(f"Aviso migración esquema profesores: {e}")
+
+        # 2. TBL_ESTUDIANTES
+        try:
+            cursor.execute("PRAGMA table_info(TBL_ESTUDIANTES)")
+            cols_est = {info[1] for info in cursor.fetchall()}
+            if cols_est:
+                if "NOMBRE_MADRE" not in cols_est:
+                    cursor.execute("ALTER TABLE TBL_ESTUDIANTES ADD COLUMN NOMBRE_MADRE TEXT DEFAULT ''")
+                if "TELEFONO_MADRE" not in cols_est:
+                    cursor.execute("ALTER TABLE TBL_ESTUDIANTES ADD COLUMN TELEFONO_MADRE TEXT DEFAULT ''")
+                if "NOMBRE_PADRE" not in cols_est:
+                    cursor.execute("ALTER TABLE TBL_ESTUDIANTES ADD COLUMN NOMBRE_PADRE TEXT DEFAULT ''")
+                if "TELEFONO_PADRE" not in cols_est:
+                    cursor.execute("ALTER TABLE TBL_ESTUDIANTES ADD COLUMN TELEFONO_PADRE TEXT DEFAULT ''")
+                if "FOTO_PATH" not in cols_est:
+                    cursor.execute("ALTER TABLE TBL_ESTUDIANTES ADD COLUMN FOTO_PATH TEXT DEFAULT ''")
+        except Exception as e:
+            print(f"Aviso migración esquema estudiantes: {e}")
+
+        # 3. TBL_SECCIONES (Asegurar catálogo completo A-Z de forma idempotente)
+        try:
+            cursor.execute("SELECT DESCRIPCION FROM TBL_SECCIONES")
+            secciones_existentes = {r[0] for r in cursor.fetchall()}
+            import string
+            for letra in string.ascii_uppercase:
+                if letra not in secciones_existentes:
+                    cursor.execute("INSERT OR IGNORE INTO TBL_SECCIONES (DESCRIPCION) VALUES (?)", (letra,))
+        except Exception as e:
+            print(f"Aviso migración esquema secciones: {e}")
 
     def crear_tablas_iniciales(self):
         """Construye las tablas la primera vez que se ejecuta el programa."""
@@ -96,7 +148,9 @@ class ConexionBD:
         cursor.execute("INSERT OR IGNORE INTO TBL_GRADOS VALUES (1,'1er AÑO'),(2,'2do AÑO'),(3,'3er AÑO'),(4,'4to AÑO'),(5,'5to AÑO'),(6,'GRADUADO')")
         
         cursor.execute("CREATE TABLE IF NOT EXISTS TBL_SECCIONES (ID_SECCION INTEGER PRIMARY KEY AUTOINCREMENT, DESCRIPCION TEXT UNIQUE)")
-        cursor.execute("INSERT OR IGNORE INTO TBL_SECCIONES (DESCRIPCION) VALUES ('A'),('B'),('C'),('D'),('E')")
+        import string
+        valores_sec = [(letra,) for letra in string.ascii_uppercase]
+        cursor.executemany("INSERT OR IGNORE INTO TBL_SECCIONES (DESCRIPCION) VALUES (?)", valores_sec)
 
         # --- ESTANTE 3: PROFESORES ---
         cursor.execute("""
@@ -104,7 +158,9 @@ class ConexionBD:
                 ID_PROFESOR INTEGER PRIMARY KEY AUTOINCREMENT,
                 CEDULA TEXT UNIQUE,
                 NOMBRE_COMPLETO TEXT,
-                ESTADO_ACTIVO INTEGER DEFAULT 1
+                ESTADO_ACTIVO INTEGER DEFAULT 1,
+                PROFESION TEXT DEFAULT '',
+                FOTO_PATH TEXT DEFAULT ''
             )""")
 
         # --- ESTANTE 4: ESTUDIANTES ---
@@ -121,7 +177,12 @@ class ConexionBD:
                 CONDICION TEXT,
                 ID_GRADO INTEGER,
                 ID_SECCION INTEGER,
-                ESTADO_ACTIVO INTEGER DEFAULT 1, 
+                ESTADO_ACTIVO INTEGER DEFAULT 1,
+                NOMBRE_MADRE TEXT DEFAULT '',
+                TELEFONO_MADRE TEXT DEFAULT '',
+                NOMBRE_PADRE TEXT DEFAULT '',
+                TELEFONO_PADRE TEXT DEFAULT '',
+                FOTO_PATH TEXT DEFAULT '',
                 FOREIGN KEY(ID_GRADO) REFERENCES TBL_GRADOS(ID_GRADO),
                 FOREIGN KEY(ID_SECCION) REFERENCES TBL_SECCIONES(ID_SECCION)
             )""")

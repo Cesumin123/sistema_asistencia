@@ -24,6 +24,7 @@ from adaptadores.ui.utilidades_ui import (
     FUENTE_CUERPO, FUENTE_CUERPO_BOLD, FUENTE_ETIQUETA,
     FUENTE_BOTON, FUENTE_PEQUEÑA, FUENTE_PEQUEÑA_BOLD,
     crear_boton, crear_tarjeta, crear_separador,
+    configurar_ventana_hija, restaurar_foco,
 )
 
 
@@ -143,7 +144,9 @@ class VentanaLogin:
             messagebox.showwarning(
                 "Faltan Datos",
                 "Por favor ingrese su nombre de usuario y contraseña.",
+                parent=self.root,
             )
+            restaurar_foco(self.root)
             return
 
         usuario_autenticado = self.repo.autenticar(usuario, password)
@@ -155,7 +158,9 @@ class VentanaLogin:
             messagebox.showerror(
                 "Acceso Denegado",
                 "Usuario o contraseña incorrectos, o cuenta de usuario inactiva.",
+                parent=self.root,
             )
+            restaurar_foco(self.root)
             self.entry_password.delete(0, tk.END)
             self.entry_password.focus()
 
@@ -167,6 +172,7 @@ class VentanaLogin:
             show="*",
             parent=self.root,
         )
+        restaurar_foco(self.root)
         if clave is None:
             return
 
@@ -174,7 +180,8 @@ class VentanaLogin:
             ServicioPromocionDominio.validar_autorizacion(clave)
             self._abrir_modal_registro()
         except PermissionError as perm_err:
-            messagebox.showerror("Acceso Denegado", str(perm_err))
+            messagebox.showerror("Acceso Denegado", str(perm_err), parent=self.root)
+            restaurar_foco(self.root)
 
     def _abrir_modal_registro(self):
         """Ventana modal para dar de alta una nueva cuenta de usuario."""
@@ -183,6 +190,7 @@ class VentanaLogin:
         win.resizable(False, False)
         win.config(bg=COLOR_FONDO_APP)
         centrar_ventana(win, 380, 460)
+        configurar_ventana_hija(win, self.root)
         win.grab_set()
 
         tarjeta = crear_tarjeta(win, padx=28, pady=24)
@@ -230,12 +238,14 @@ class VentanaLogin:
                 nuevo = Usuario(nombre_completo=nombre, username=username, password=password, rol=rol)
                 nuevo.validar()
                 self.repo.guardar(nuevo)
-                messagebox.showinfo("Éxito", f"Usuario '{username}' registrado con rol '{rol}'.")
+                messagebox.showinfo("Éxito", f"Usuario '{username}' registrado con rol '{rol}'.", parent=win)
                 win.destroy()
             except ValueError as val_err:
-                messagebox.showwarning("Dato Inválido", str(val_err))
+                messagebox.showwarning("Dato Inválido", str(val_err), parent=win)
+                restaurar_foco(win)
             except Exception as err:
-                messagebox.showerror("Error al Guardar", str(err))
+                messagebox.showerror("Error al Guardar", str(err), parent=win)
+                restaurar_foco(win)
 
         crear_boton(
             tarjeta, texto="💾  GUARDAR USUARIO", comando=guardar,

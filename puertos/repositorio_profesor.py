@@ -29,3 +29,13 @@ class RepositorioProfesor(ABC):
     def obtener_activos(self) -> List[Profesor]:
         """Devuelve los profesores con ESTADO_ACTIVO = 1."""
         pass
+
+    @abstractmethod
+    def obtener_por_id(self, id_profesor: int) -> Optional[Profesor]:
+        """Obtiene un profesor por su identificador único."""
+        pass
+
+    @abstractmethod
+    def obtener_por_cedula(self, cedula: str) -> Optional[Profesor]:
+        """Obtiene un profesor por su cédula de identidad."""
+        pass

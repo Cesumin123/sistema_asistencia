@@ -20,7 +20,7 @@ from adaptadores.ui.utilidades_ui import (
     FUENTE_CUERPO, FUENTE_CUERPO_BOLD, FUENTE_ETIQUETA,
     FUENTE_PEQUEÑA, FUENTE_PEQUEÑA_BOLD,
     crear_boton, crear_tarjeta, crear_separador,
-    crear_treeview_zebra, insertar_fila_zebra,
+    crear_treeview_zebra, insertar_fila_zebra, restaurar_foco,
 )
 
 
@@ -109,7 +109,8 @@ class UIPromocion:
                 destino = mapa_destinos.get(r.id_grado, "Sin Cambio")
                 insertar_fila_zebra(self.tree, (r.id_grado, r.descripcion, r.total_estudiantes, destino))
         except Exception as error:
-            messagebox.showerror("Error", f"No se pudo cargar la vista previa: {error}")
+            messagebox.showerror("Error", f"No se pudo cargar la vista previa: {error}", parent=self.root)
+            restaurar_foco(self.root)
 
     def solicitar_promocion(self):
         confirmado = messagebox.askyesno(
@@ -117,8 +118,10 @@ class UIPromocion:
             "¿Está completamente seguro de promover a todos los estudiantes activos?\n\n"
             "Esta operación modifica los registros y NO se puede deshacer.",
             icon="warning",
+            parent=self.root,
         )
         if not confirmado:
+            restaurar_foco(self.root)
             return
 
         clave = simpledialog.askstring(
@@ -126,22 +129,27 @@ class UIPromocion:
             "Ingrese la CLAVE MAESTRA para autorizar la promoción:",
             show="*", parent=self.root,
         )
+        restaurar_foco(self.root)
         if not clave:
-            messagebox.showinfo("Cancelado", "Operación cancelada.")
+            messagebox.showinfo("Cancelado", "Operación cancelada.", parent=self.root)
+            restaurar_foco(self.root)
             return
 
         try:
             ServicioPromocionDominio.validar_autorizacion(clave)
         except PermissionError as perm_err:
-            messagebox.showerror("Acceso Denegado", str(perm_err))
+            messagebox.showerror("Acceso Denegado", str(perm_err), parent=self.root)
+            restaurar_foco(self.root)
             return
 
         try:
             resultado = self.repo.ejecutar_promocion_cascada(usuario_responsable=self.usuario_actual)
-            messagebox.showinfo("¡Proceso Exitoso!", f"{resultado.mensaje}\n\n¡Feliz Nuevo Año Escolar!")
+            messagebox.showinfo("¡Proceso Exitoso!", f"{resultado.mensaje}\n\n¡Feliz Nuevo Año Escolar!", parent=self.root)
             self.cargar_vista_previa()
         except Exception as error:
-            messagebox.showerror("Fallo Crítico", f"Error al ejecutar: {error}")
+            messagebox.showerror("Fallo Crítico", f"Error al ejecutar: {error}", parent=self.root)
+        finally:
+            restaurar_foco(self.root)
 
 
 # Alias

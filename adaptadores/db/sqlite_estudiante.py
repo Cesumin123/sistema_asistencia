@@ -15,7 +15,7 @@ class RepositorioEstudianteSQLite(PuertoRepositorioEstudiante):
         self.db = db
 
     def guardar(self, estudiante: Estudiante) -> bool:
-        """Inserta un nuevo estudiante en la base de datos."""
+        """Inserta un nuevo estudiante en la base de datos con los campos de FASE A."""
         conn = self.db.conectar()
         if not conn: return False
         
@@ -24,14 +24,18 @@ class RepositorioEstudianteSQLite(PuertoRepositorioEstudiante):
             sql = """
                 INSERT INTO TBL_ESTUDIANTES 
                 (ID_ESTUDIANTE, NOMBRE, FECHA_NACIMIENTO, REPRESENTANTE, TELEFONO, GENERO, 
-                 ESCOLARIDAD, TURNO, CONDICION, ID_GRADO, ID_SECCION, ESTADO_ACTIVO) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 ESCOLARIDAD, TURNO, CONDICION, ID_GRADO, ID_SECCION, ESTADO_ACTIVO,
+                 NOMBRE_MADRE, TELEFONO_MADRE, NOMBRE_PADRE, TELEFONO_PADRE, FOTO_PATH) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """
             valores = (
                 estudiante.cedula, estudiante.nombre, estudiante.fecha_nacimiento, 
                 estudiante.representante, estudiante.telefono, estudiante.genero,
                 estudiante.escolaridad, estudiante.turno, estudiante.condicion,
-                estudiante.id_grado, estudiante.id_seccion, estudiante.estado_activo
+                estudiante.id_grado, estudiante.id_seccion, estudiante.estado_activo,
+                estudiante.nombre_madre, estudiante.telefono_madre,
+                estudiante.nombre_padre, estudiante.telefono_padre,
+                estudiante.foto_path
             )
             cursor.execute(sql, valores)
             conn.commit()
@@ -55,14 +59,19 @@ class RepositorioEstudianteSQLite(PuertoRepositorioEstudiante):
             sql = """
                 UPDATE TBL_ESTUDIANTES SET 
                 NOMBRE=?, FECHA_NACIMIENTO=?, REPRESENTANTE=?, TELEFONO=?, GENERO=?, 
-                ESCOLARIDAD=?, TURNO=?, CONDICION=?, ID_GRADO=?, ID_SECCION=?, ESTADO_ACTIVO=?
+                ESCOLARIDAD=?, TURNO=?, CONDICION=?, ID_GRADO=?, ID_SECCION=?, ESTADO_ACTIVO=?,
+                NOMBRE_MADRE=?, TELEFONO_MADRE=?, NOMBRE_PADRE=?, TELEFONO_PADRE=?, FOTO_PATH=?
                 WHERE ID_ESTUDIANTE=?
             """
             valores = (
                 estudiante.nombre, estudiante.fecha_nacimiento, estudiante.representante, 
                 estudiante.telefono, estudiante.genero, estudiante.escolaridad, 
                 estudiante.turno, estudiante.condicion, estudiante.id_grado, 
-                estudiante.id_seccion, estudiante.estado_activo, estudiante.cedula
+                estudiante.id_seccion, estudiante.estado_activo,
+                estudiante.nombre_madre, estudiante.telefono_madre,
+                estudiante.nombre_padre, estudiante.telefono_padre,
+                estudiante.foto_path,
+                estudiante.cedula
             )
             cursor.execute(sql, valores)
             conn.commit()
@@ -93,6 +102,28 @@ class RepositorioEstudianteSQLite(PuertoRepositorioEstudiante):
         finally:
             self.db.cerrar()
 
+    def _mapear_fila(self, fila) -> Estudiante:
+        """Mapeo defensivo para reconstruir Estudiante tolerando esquemas previos o NULLs."""
+        return Estudiante(
+            cedula=fila[0] or "",
+            nombre=fila[1] or "",
+            fecha_nacimiento=fila[2] or "",
+            representante=fila[3] or "",
+            telefono=fila[4] or "",
+            genero=fila[5] or "M",
+            escolaridad=fila[6] or "Regular",
+            turno=fila[7] or "Mañana",
+            condicion=fila[8] or "Activo",
+            id_grado=fila[9] if fila[9] is not None else 1,
+            id_seccion=fila[10] if fila[10] is not None else 1,
+            estado_activo=fila[11] if fila[11] is not None else 1,
+            nombre_madre=fila[12] if len(fila) > 12 and fila[12] is not None else "",
+            telefono_madre=fila[13] if len(fila) > 13 and fila[13] is not None else "",
+            nombre_padre=fila[14] if len(fila) > 14 and fila[14] is not None else "",
+            telefono_padre=fila[15] if len(fila) > 15 and fila[15] is not None else "",
+            foto_path=fila[16] if len(fila) > 16 and fila[16] is not None else ""
+        )
+
     def obtener_por_cedula(self, cedula: str) -> Optional[Estudiante]:
         """Busca un estudiante específico si está activo."""
         conn = self.db.conectar()
@@ -100,17 +131,18 @@ class RepositorioEstudianteSQLite(PuertoRepositorioEstudiante):
         
         try:
             cursor = conn.cursor()
-            sql = "SELECT * FROM TBL_ESTUDIANTES WHERE ID_ESTUDIANTE = ? AND ESTADO_ACTIVO = 1"
+            sql = """
+                SELECT ID_ESTUDIANTE, NOMBRE, FECHA_NACIMIENTO, REPRESENTANTE, TELEFONO, GENERO,
+                       ESCOLARIDAD, TURNO, CONDICION, ID_GRADO, ID_SECCION, ESTADO_ACTIVO,
+                       NOMBRE_MADRE, TELEFONO_MADRE, NOMBRE_PADRE, TELEFONO_PADRE, FOTO_PATH 
+                FROM TBL_ESTUDIANTES 
+                WHERE ID_ESTUDIANTE = ? AND ESTADO_ACTIVO = 1
+            """
             cursor.execute(sql, (cedula,))
             fila = cursor.fetchone()
             
             if fila:
-                return Estudiante(
-                    cedula=fila[0], nombre=fila[1], fecha_nacimiento=fila[2],
-                    representante=fila[3], telefono=fila[4], genero=fila[5],
-                    escolaridad=fila[6], turno=fila[7], condicion=fila[8],
-                    id_grado=fila[9], id_seccion=fila[10], estado_activo=fila[11]
-                )
+                return self._mapear_fila(fila)
             return None
         except Exception as e:
             print(f"Error al buscar estudiante: {e}")
@@ -126,19 +158,35 @@ class RepositorioEstudianteSQLite(PuertoRepositorioEstudiante):
         estudiantes = []
         try:
             cursor = conn.cursor()
-            sql = "SELECT * FROM TBL_ESTUDIANTES WHERE ESTADO_ACTIVO = 1 ORDER BY NOMBRE ASC"
+            sql = """
+                SELECT ID_ESTUDIANTE, NOMBRE, FECHA_NACIMIENTO, REPRESENTANTE, TELEFONO, GENERO,
+                       ESCOLARIDAD, TURNO, CONDICION, ID_GRADO, ID_SECCION, ESTADO_ACTIVO,
+                       NOMBRE_MADRE, TELEFONO_MADRE, NOMBRE_PADRE, TELEFONO_PADRE, FOTO_PATH 
+                FROM TBL_ESTUDIANTES 
+                WHERE ESTADO_ACTIVO = 1 
+                ORDER BY NOMBRE ASC
+            """
             cursor.execute(sql)
             
             for fila in cursor.fetchall():
-                estudiantes.append(Estudiante(
-                    cedula=fila[0], nombre=fila[1], fecha_nacimiento=fila[2],
-                    representante=fila[3], telefono=fila[4], genero=fila[5],
-                    escolaridad=fila[6], turno=fila[7], condicion=fila[8],
-                    id_grado=fila[9], id_seccion=fila[10], estado_activo=fila[11]
-                ))
+                estudiantes.append(self._mapear_fila(fila))
             return estudiantes
         except Exception as e:
             print(f"Error al obtener estudiantes: {e}")
             return []
+        finally:
+            self.db.cerrar()
+
+    def obtener_secciones(self) -> list:
+        """Devuelve la lista de secciones registradas en TBL_SECCIONES."""
+        conn = self.db.conectar()
+        if not conn:
+            return [(i, chr(64 + i)) for i in range(1, 27)]
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT ID_SECCION, DESCRIPCION FROM TBL_SECCIONES ORDER BY ID_SECCION")
+            return cursor.fetchall()
+        except Exception:
+            return [(i, chr(64 + i)) for i in range(1, 27)]
         finally:
             self.db.cerrar()
