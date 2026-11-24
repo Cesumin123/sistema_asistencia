@@ -1,8 +1,8 @@
 # adaptadores/db/sqlite_usuario.py
 import sqlite3
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from puertos.repositorio_usuario import RepositorioUsuario
-from dominio.usuario import Usuario
+from dominio.usuario import Usuario, ServicioRecuperacionUsuario
 
 class SQLiteRepositorioUsuario(RepositorioUsuario):
     """
@@ -116,3 +116,78 @@ class SQLiteRepositorioUsuario(RepositorioUsuario):
         if usuario and usuario.verificar_password(password_plano):
             return usuario
         return None
+
+    def obtener_usernames_activos(self) -> List[Tuple[str, str]]:
+        """Retorna lista de tuplas (username, rol) solo para usuarios activos, sin exponer hashes."""
+        conn = self.db.conectar()
+        if not conn:
+            return []
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT USERNAME, ROL FROM TBL_USUARIOS "
+                "WHERE ESTADO_ACTIVO = 1 ORDER BY USERNAME ASC"
+            )
+            return [(str(fila[0]), str(fila[1])) for fila in cursor.fetchall()]
+        finally:
+            self.db.cerrar()
+
+    def restablecer_contrasena_con_auditoria(
+        self,
+        username: str,
+        nueva_password_plana: str,
+        clave_maestra: str,
+        ejecutor: str = "RECUPERACION_LOGIN",
+    ) -> bool:
+        """
+        Valida la clave maestra institucional, verifica usuario activo y regla de contraseña,
+        re-hashea con PBKDF2-HMAC-SHA256 (salt nuevo) y registra en TBL_AUDITORIA atómicamente.
+        """
+        ServicioRecuperacionUsuario.validar_clave_maestra(clave_maestra)
+        password_validada = ServicioRecuperacionUsuario.validar_nueva_password(nueva_password_plana)
+
+        username_limpio = str(username).strip() if username is not None else ""
+        if not username_limpio:
+            raise ValueError("Debe seleccionar un nombre de usuario válido.")
+
+        ejecutor_limpio = str(ejecutor or "RECUPERACION_LOGIN").strip().upper() or "RECUPERACION_LOGIN"
+
+        conn = self.db.conectar()
+        if not conn:
+            raise ConnectionError("No se pudo conectar a la base de datos.")
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT ID_USUARIO FROM TBL_USUARIOS WHERE USERNAME = ? AND ESTADO_ACTIVO = 1",
+                (username_limpio,),
+            )
+            fila = cursor.fetchone()
+            if not fila:
+                raise ValueError(f"El usuario '{username_limpio}' no existe o está inactivo.")
+
+            id_usuario = int(fila[0])
+            nuevo_hash = Usuario.generar_hash(password_validada)
+
+            cursor.execute(
+                "UPDATE TBL_USUARIOS SET PASSWORD = ? WHERE ID_USUARIO = ? AND ESTADO_ACTIVO = 1",
+                (nuevo_hash, id_usuario),
+            )
+
+            detalle_auditoria = (
+                f"Restablecimiento offline de credenciales para usuario '{username_limpio}'."
+            )
+            cursor.execute(
+                """
+                INSERT INTO TBL_AUDITORIA (FECHA_HORA, USUARIO, MODULO, ACCION, DETALLES)
+                VALUES (datetime('now', 'localtime'), ?, 'SEGURIDAD', 'RESTABLECER_CREDENCIALES', ?)
+                """,
+                (ejecutor_limpio, detalle_auditoria),
+            )
+            conn.commit()
+            return True
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            self.db.cerrar()

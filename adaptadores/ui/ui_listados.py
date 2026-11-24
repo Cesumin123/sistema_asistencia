@@ -42,7 +42,7 @@ class UIListados:
 
         self.root.title("Listados y Consolidados Institucionales")
         self.root.config(bg=COLOR_FONDO_APP)
-        centrar_ventana(self.root, 1100, 680)
+        centrar_ventana(self.root, 980, 660)
         maximizar_ventana(self.root)
 
         self._datos_alumnos: List[Dict[str, Any]] = []
@@ -87,7 +87,7 @@ class UIListados:
 
         cols = ("cedula", "nombre", "nacimiento", "representante", "telefono", "genero", "grado", "seccion", "condicion", "turno")
         enc = ["Cédula", "Estudiante", "F. Nac", "Representante", "Teléfono", "Gen", "Año", "Sec", "Condición", "Turno"]
-        anch = [90, 220, 90, 180, 100, 40, 80, 50, 80, 80]
+        anch = [85, 195, 80, 155, 92, 42, 75, 45, 78, 78]
         anclas = ["center", "w", "center", "w", "center", "center", "center", "center", "center", "center"]
 
         self.tree_alumnos, frame_tree = crear_treeview_zebra(tab, cols, enc, anch, anclas)

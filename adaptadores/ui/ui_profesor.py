@@ -110,7 +110,7 @@ class GestorProfesoresUI:
 
         # Contenedor principal con grid de 2 columnas
         contenedor = tk.Frame(tab, bg=COLOR_FONDO_APP)
-        contenedor.pack(fill="both", expand=True, padx=20, pady=15)
+        contenedor.pack(fill="both", expand=True, padx=14, pady=10)
         contenedor.columnconfigure(0, weight=5)
         contenedor.columnconfigure(1, weight=5)
         contenedor.rowconfigure(0, weight=1)
@@ -118,23 +118,23 @@ class GestorProfesoresUI:
         # ══════════════════════════════════════════════════════════════════
         # COLUMNA IZQUIERDA: TARJETA DE FORMULARIO Y FOTO
         # ══════════════════════════════════════════════════════════════════
-        tarjeta_form = crear_tarjeta(contenedor, padx=25, pady=20)
-        tarjeta_form.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        tarjeta_form = crear_tarjeta(contenedor, padx=18, pady=12)
+        tarjeta_form.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
 
         # Encabezado con Logo y Título
         f_header = tk.Frame(tarjeta_form, bg=COLOR_TARJETA)
-        f_header.pack(fill="x", pady=(0, 15))
+        f_header.pack(fill="x", pady=(0, 8))
 
         ruta_logo = resolver_ruta_logo()
         if ruta_logo:
             try:
                 img_orig = Image.open(ruta_logo)
-                ratio = min(75 / img_orig.width, 75 / img_orig.height)
+                ratio = min(64 / img_orig.width, 64 / img_orig.height)
                 nuevo_w = int(img_orig.width * ratio)
                 nuevo_h = int(img_orig.height * ratio)
                 img_redim = img_orig.resize((nuevo_w, nuevo_h), Image.Resampling.LANCZOS)
                 self.img_logo_tk = ImageTk.PhotoImage(img_redim)
-                tk.Label(f_header, image=self.img_logo_tk, bg=COLOR_TARJETA).pack(side="left", padx=(0, 15))
+                tk.Label(f_header, image=self.img_logo_tk, bg=COLOR_TARJETA).pack(side="left", padx=(0, 12))
             except Exception:
                 pass
 
@@ -143,26 +143,28 @@ class GestorProfesoresUI:
         tk.Label(f_titulos, text="EXPEDIENTE DOCENTE", font=FUENTE_SUBTITULO, bg=COLOR_TARJETA, fg=COLOR_PRIMARIO).pack(anchor="w")
         tk.Label(f_titulos, text="Complejo Educativo 'Colinas del Llano'", font=FUENTE_PEQUEÑA, bg=COLOR_TARJETA, fg=COLOR_TEXTO_SECUNDARIO).pack(anchor="w", pady=(2, 0))
 
-        crear_separador(tarjeta_form).pack(fill="x", pady=(0, 15))
+        crear_separador(tarjeta_form).pack(fill="x", pady=(0, 10))
 
         # Cuerpo del Formulario + Marco de Foto
         f_cuerpo = tk.Frame(tarjeta_form, bg=COLOR_TARJETA)
         f_cuerpo.pack(fill="both", expand=True)
+        f_cuerpo.columnconfigure(0, weight=1)
+        f_cuerpo.columnconfigure(1, minsize=160)
 
         # Sub-panel de campos de texto (lado izquierdo de la tarjeta)
         f_campos = tk.Frame(f_cuerpo, bg=COLOR_TARJETA)
-        f_campos.pack(side="left", fill="both", expand=True, padx=(0, 15))
+        f_campos.grid(row=0, column=0, sticky="nsew", padx=(0, 12))
 
         tk.Label(f_campos, text="Cédula de Identidad:", bg=COLOR_TARJETA, fg=COLOR_TEXTO_PRINCIPAL, font=FUENTE_ETIQUETA).pack(anchor="w", pady=(0, 2))
         f_ced = tk.Frame(f_campos, bg=COLOR_TARJETA)
-        f_ced.pack(anchor="w", pady=(0, 10))
+        f_ced.pack(anchor="w", pady=(0, 6))
 
         self.combo_nac_prof = ttk.Combobox(f_ced, values=["V", "E", "P"], width=3, state="readonly")
         self.combo_nac_prof.pack(side="left")
         self.combo_nac_prof.current(0)
         self.combo_nac_prof.bind("<Return>", enfocar_siguiente)
 
-        self.entry_ced_prof = tk.Entry(f_ced, width=16, font=FUENTE_CUERPO, relief="solid", bd=1)
+        self.entry_ced_prof = tk.Entry(f_ced, width=15, font=FUENTE_CUERPO, relief="solid", bd=1)
         self.entry_ced_prof.pack(side="left", padx=(6, 0))
         self.entry_ced_prof.bind("<Return>", enfocar_siguiente)
         self.entry_ced_prof.focus()
@@ -170,24 +172,24 @@ class GestorProfesoresUI:
 
         tk.Label(f_campos, text="Nombre Completo del Profesor:", bg=COLOR_TARJETA, fg=COLOR_TEXTO_PRINCIPAL, font=FUENTE_ETIQUETA).pack(anchor="w", pady=(0, 2))
         self.entry_nom_prof = tk.Entry(f_campos, font=FUENTE_CUERPO, relief="solid", bd=1)
-        self.entry_nom_prof.pack(fill="x", pady=(0, 10))
+        self.entry_nom_prof.pack(fill="x", pady=(0, 6))
         self.entry_nom_prof.bind("<KeyRelease>", self.convertir_mayus)
         self.entry_nom_prof.bind("<Return>", enfocar_siguiente)
 
         tk.Label(f_campos, text="Profesión / Título Académico:", bg=COLOR_TARJETA, fg=COLOR_TEXTO_PRINCIPAL, font=FUENTE_ETIQUETA).pack(anchor="w", pady=(0, 2))
         self.combo_profesion = ttk.Combobox(f_campos, values=PROFESIONES_SUGERIDAS, font=FUENTE_CUERPO)
-        self.combo_profesion.pack(fill="x", pady=(0, 10))
+        self.combo_profesion.pack(fill="x", pady=(0, 6))
         self.combo_profesion.set("Lcdo. en Educación")
 
         # Sub-panel de Foto (lado derecho de la tarjeta de form)
-        f_foto_box = tk.Frame(f_cuerpo, bg=COLOR_TARJETA, width=140)
-        f_foto_box.pack(side="right", fill="y", padx=(10, 0))
+        f_foto_box = tk.Frame(f_cuerpo, bg=COLOR_TARJETA, width=160)
+        f_foto_box.grid(row=0, column=1, sticky="ns")
 
-        tk.Label(f_foto_box, text="Fotografía:", bg=COLOR_TARJETA, fg=COLOR_TEXTO_PRINCIPAL, font=FUENTE_ETIQUETA).pack(anchor="center", pady=(0, 4))
+        tk.Label(f_foto_box, text="Fotografía:", bg=COLOR_TARJETA, fg=COLOR_TEXTO_PRINCIPAL, font=FUENTE_ETIQUETA).pack(anchor="center", pady=(0, 3))
         
         self.f_foto_container = tk.Frame(f_foto_box, width=110, height=110, bg="#EAECEE", relief="solid", bd=1)
         self.f_foto_container.pack_propagate(False)
-        self.f_foto_container.pack(anchor="center", pady=(0, 8))
+        self.f_foto_container.pack(anchor="center", pady=(0, 6))
 
         self.lbl_foto = tk.Label(
             self.f_foto_container, text="[ SIN FOTO ]", bg="#EAECEE", fg=COLOR_TEXTO_SECUNDARIO,
@@ -197,15 +199,24 @@ class GestorProfesoresUI:
 
         f_foto_btns = tk.Frame(f_foto_box, bg=COLOR_TARJETA)
         f_foto_btns.pack(fill="x")
-        self.btn_cargar_foto = crear_boton(f_foto_btns, "📷 Cargar", self.cargar_foto_click, COLOR_PRIMARIO, COLOR_TEXTO_CLARO, ancho=8)
-        self.btn_cargar_foto.pack(side="left", padx=2)
+        f_foto_btns.columnconfigure(0, weight=1, uniform="btn_foto_prof")
+        f_foto_btns.columnconfigure(1, weight=1, uniform="btn_foto_prof")
+
+        self.btn_cargar_foto = crear_boton(
+            f_foto_btns, "📷 Cargar", self.cargar_foto_click,
+            COLOR_PRIMARIO, COLOR_TEXTO_CLARO, padx=6, pady=5,
+        )
+        self.btn_cargar_foto.grid(row=0, column=0, sticky="ew", padx=(0, 2))
         AyudaVisual(self.btn_cargar_foto, "Cargar fotografía oficial del docente (JPEG 240x240)")
 
-        self.btn_quitar_foto = crear_boton(f_foto_btns, "✖ Quitar", self.quitar_foto_click, "#7F8C8D", COLOR_TEXTO_CLARO, ancho=7)
-        self.btn_quitar_foto.pack(side="left", padx=2)
+        self.btn_quitar_foto = crear_boton(
+            f_foto_btns, "✖ Quitar", self.quitar_foto_click,
+            "#7F8C8D", COLOR_TEXTO_CLARO, padx=6, pady=5,
+        )
+        self.btn_quitar_foto.grid(row=0, column=1, sticky="ew", padx=(2, 0))
         AyudaVisual(self.btn_quitar_foto, "Remover la fotografía asignada")
 
-        crear_separador(tarjeta_form).pack(fill="x", pady=(15, 15))
+        crear_separador(tarjeta_form).pack(fill="x", pady=(8, 8))
 
         # Botonera de Acciones en cuadrícula 2x2
         f_acciones = tk.Frame(tarjeta_form, bg=COLOR_TARJETA)
@@ -213,20 +224,20 @@ class GestorProfesoresUI:
         f_acciones.columnconfigure(0, weight=1, uniform="btn_prof")
         f_acciones.columnconfigure(1, weight=1, uniform="btn_prof")
 
-        self.btn_guardar = crear_boton(f_acciones, "💾  GUARDAR", self.guardar_click, COLOR_ACENTO, COLOR_TEXTO_CLARO, COLOR_ACENTO_HOVER)
-        self.btn_guardar.grid(row=0, column=0, sticky="ew", padx=4, pady=4)
+        self.btn_guardar = crear_boton(f_acciones, "💾  GUARDAR", self.guardar_click, COLOR_ACENTO, COLOR_TEXTO_CLARO, COLOR_ACENTO_HOVER, pady=6)
+        self.btn_guardar.grid(row=0, column=0, sticky="ew", padx=4, pady=3)
         AyudaVisual(self.btn_guardar, "Registrar nuevo profesor con los datos ingresados")
 
-        self.btn_actualizar = crear_boton(f_acciones, "📝  ACTUALIZAR", self.actualizar_click, COLOR_ADVERTENCIA, COLOR_TEXTO_CLARO, COLOR_ADVERTENCIA_HOVER)
-        self.btn_actualizar.grid(row=0, column=1, sticky="ew", padx=4, pady=4)
+        self.btn_actualizar = crear_boton(f_acciones, "📝  ACTUALIZAR", self.actualizar_click, COLOR_ADVERTENCIA, COLOR_TEXTO_CLARO, COLOR_ADVERTENCIA_HOVER, pady=6)
+        self.btn_actualizar.grid(row=0, column=1, sticky="ew", padx=4, pady=3)
         AyudaVisual(self.btn_actualizar, "Actualizar los datos del docente seleccionado")
 
-        self.btn_ficha = crear_boton(f_acciones, "🖨️  FICHA PDF", self.imprimir_ficha_click, "#2980B9", COLOR_TEXTO_CLARO, "#3498DB")
-        self.btn_ficha.grid(row=1, column=0, sticky="ew", padx=4, pady=4)
+        self.btn_ficha = crear_boton(f_acciones, "🖨️  FICHA PDF", self.imprimir_ficha_click, "#2980B9", COLOR_TEXTO_CLARO, "#3498DB", pady=6)
+        self.btn_ficha.grid(row=1, column=0, sticky="ew", padx=4, pady=3)
         AyudaVisual(self.btn_ficha, "Exportar Ficha Técnica Oficial del Docente en PDF")
 
-        self.btn_limpiar = crear_boton(f_acciones, "🧹  LIMPIAR", self.limpiar_formulario, "#95A5A6", COLOR_TEXTO_CLARO)
-        self.btn_limpiar.grid(row=1, column=1, sticky="ew", padx=4, pady=4)
+        self.btn_limpiar = crear_boton(f_acciones, "🧹  LIMPIAR", self.limpiar_formulario, "#95A5A6", COLOR_TEXTO_CLARO, pady=6)
+        self.btn_limpiar.grid(row=1, column=1, sticky="ew", padx=4, pady=3)
         AyudaVisual(self.btn_limpiar, "Limpiar formulario y deseleccionar registro")
 
         # ══════════════════════════════════════════════════════════════════

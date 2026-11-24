@@ -43,7 +43,7 @@ class UIPromocion:
 
         self.root.title("Cierre y Promoción de Año Escolar")
         self.root.config(bg=COLOR_FONDO_APP)
-        centrar_ventana(self.root, 800, 650)
+        centrar_ventana(self.root, 800, 620)
         maximizar_ventana(self.root)
 
         self._crear_interfaz()
@@ -51,7 +51,7 @@ class UIPromocion:
 
     def _crear_interfaz(self):
         # ═══ BANNER DE ADVERTENCIA ROJO ═══
-        f_alerta = tk.Frame(self.root, bg=COLOR_PELIGRO, pady=15)
+        f_alerta = tk.Frame(self.root, bg=COLOR_PELIGRO, pady=10)
         f_alerta.pack(fill="x")
 
         tk.Label(f_alerta, text="⚠️  ZONA DE ALTO RIESGO — CIERRE DE AÑO ESCOLAR", font=FUENTE_SUBTITULO, fg=COLOR_TEXTO_CLARO, bg=COLOR_PELIGRO).pack()
@@ -62,37 +62,43 @@ class UIPromocion:
             "• Los estudiantes inactivos no son alterados.\n"
             "¡Esta acción es IRREVERSIBLE y requiere la Clave Maestra!"
         )
-        tk.Label(f_alerta, text=texto_adv, font=FUENTE_PEQUEÑA, fg="#FDFEFE", bg=COLOR_PELIGRO, justify="center").pack(pady=8)
+        tk.Label(f_alerta, text=texto_adv, font=FUENTE_PEQUEÑA, fg="#FDFEFE", bg=COLOR_PELIGRO, justify="center").pack(pady=4)
+
+        # ═══ BOTÓN DE EJECUCIÓN (empaquetado abajo antes del Treeview para visibilidad en 1024x768) ═══
+        f_accion = tk.Frame(self.root, bg=COLOR_FONDO_APP, pady=10)
+        f_accion.pack(side="bottom", fill="x")
+
+        self.btn_ejecutar = crear_boton(
+            f_accion, "🔒  EJECUTAR PROMOCIÓN EN CASCADA",
+            self.solicitar_promocion, COLOR_PELIGRO, COLOR_TEXTO_CLARO,
+            COLOR_PELIGRO_HOVER,
+            fuente=FUENTE_ENCABEZADO,
+            pady=6,
+        )
+        self.btn_ejecutar.pack(ipady=4, ipadx=16)
 
         # ═══ VISTA PREVIA ═══
-        f_central = tk.Frame(self.root, bg=COLOR_FONDO_APP, padx=25, pady=15)
+        f_central = tk.Frame(self.root, bg=COLOR_FONDO_APP, padx=20, pady=8)
         f_central.pack(fill="both", expand=True)
 
-        tk.Label(f_central, text="Vista Previa de Alumnos Activos por Grado:", font=FUENTE_ETIQUETA, fg=COLOR_TEXTO_PRINCIPAL, bg=COLOR_FONDO_APP).pack(anchor="w", pady=5)
+        tk.Label(f_central, text="Vista Previa de Alumnos Activos por Grado:", font=FUENTE_ETIQUETA, fg=COLOR_TEXTO_PRINCIPAL, bg=COLOR_FONDO_APP).pack(anchor="w", pady=4)
 
         cols = ("id_grado", "grado", "alumnos_activos", "destino")
         enc = ["ID", "Grado / Año Actual", "Alumnos Activos", "Destino tras Promoción"]
         anch = [40, 220, 120, 220]
         anclas = ["center", "w", "center", "w"]
 
-        self.tree, frame_tree = crear_treeview_zebra(f_central, cols, enc, anch, anclas, alto=8)
+        self.tree, frame_tree = crear_treeview_zebra(f_central, cols, enc, anch, anclas, alto=7)
         frame_tree.pack(fill="both", expand=True)
 
         # Refrescar
-        f_refresh = tk.Frame(f_central, bg=COLOR_FONDO_APP, pady=5)
+        f_refresh = tk.Frame(f_central, bg=COLOR_FONDO_APP, pady=4)
         f_refresh.pack(fill="x")
-        crear_boton(f_refresh, "🔄 Refrescar Censo", self.cargar_vista_previa, "#95A5A6", COLOR_TEXTO_CLARO).pack(side="right")
-
-        # ═══ BOTÓN DE EJECUCIÓN ═══
-        f_accion = tk.Frame(self.root, bg=COLOR_FONDO_APP, pady=15)
-        f_accion.pack()
-
-        crear_boton(
-            f_accion, "🔒  EJECUTAR PROMOCIÓN EN CASCADA",
-            self.solicitar_promocion, COLOR_PELIGRO, COLOR_TEXTO_CLARO,
-            COLOR_PELIGRO_HOVER,
-            fuente=FUENTE_ENCABEZADO,
-        ).pack(ipady=6, ipadx=20)
+        self.btn_refrescar = crear_boton(
+            f_refresh, "🔄 Refrescar Censo", self.cargar_vista_previa,
+            "#95A5A6", COLOR_TEXTO_CLARO, pady=5,
+        )
+        self.btn_refrescar.pack(side="right")
 
     def cargar_vista_previa(self):
         for item in self.tree.get_children():

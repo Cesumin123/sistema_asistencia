@@ -26,6 +26,7 @@ from adaptadores.db.sqlite_clase import SQLiteRepositorioClase
 from adaptadores.db.sqlite_asistencia import RepositorioAsistenciaSQLite
 from adaptadores.respaldo.json_asistencia import RespaldoAsistenciaJSON
 from adaptadores.db.sqlite_reportes import RepositorioReportesSQLite
+from adaptadores.db.sqlite_estadisticas import RepositorioEstadisticasSQLite
 from adaptadores.db.sqlite_promocion import RepositorioPromocionSQLite
 from adaptadores.db.sqlite_listados import RepositorioListadosSQLite
 
@@ -41,13 +42,15 @@ from adaptadores.ui.ui_clase import GestorClasesUI
 from adaptadores.ui.ui_estudiante import UIEstudiante
 from adaptadores.ui.ui_asistencia import SelectorClaseUI, PlanillaUI, ControladorAsistencia
 from adaptadores.ui.ui_reportes import UIReportes
+from adaptadores.ui.ui_estadisticas import UIEstadisticas
 from adaptadores.ui.ui_listados import UIListados
 from adaptadores.ui.ui_promocion import UIPromocion
 from adaptadores.ui.ui_usuario import GestorUsuariosUI
 
 from dominio.permisos import (
     MODULO_ACADEMICO, MODULO_ESTUDIANTES, MODULO_ASISTENCIA,
-    MODULO_LISTADOS, MODULO_REPORTES, MODULO_PROMOCION, MODULO_USUARIOS
+    MODULO_LISTADOS, MODULO_REPORTES, MODULO_ESTADISTICAS,
+    MODULO_PROMOCION, MODULO_USUARIOS
 )
 
 
@@ -217,6 +220,7 @@ def test_ui_menu_principal_botones_modulos_y_logout(tk_app, mocks_dialogos):
         MODULO_ASISTENCIA: MagicMock(),
         MODULO_LISTADOS: MagicMock(),
         MODULO_REPORTES: MagicMock(),
+        MODULO_ESTADISTICAS: MagicMock(),
         MODULO_PROMOCION: MagicMock(),
         MODULO_USUARIOS: MagicMock(),
     }
@@ -226,7 +230,7 @@ def test_ui_menu_principal_botones_modulos_y_logout(tk_app, mocks_dialogos):
     usr_admin = Usuario(id_usuario=1, username="admin", password="hash_password", rol="ADMIN", nombre_completo="Admin General")
     menu_admin = MenuPrincipalUI(usr_admin, callbacks, on_logout=cb_logout, root=tk_app)
 
-    # Simular clic en los 7 callbacks vinculados
+    # Simular clic en los 8 callbacks vinculados
     for mod_id, mock_cb in callbacks.items():
         mock_cb()
         assert mock_cb.call_count == 1
@@ -235,10 +239,12 @@ def test_ui_menu_principal_botones_modulos_y_logout(tk_app, mocks_dialogos):
     menu_admin.cerrar_sesion()
     assert cb_logout.call_count == 1
 
-    # Rol DOCENTE: no debe tener acceso a Promoción ni Usuarios
+    # Rol DOCENTE: no debe tener acceso a Estadísticas, Promoción ni Usuarios
     from dominio.permisos import tiene_permiso
+    assert tiene_permiso("DOCENTE", MODULO_ESTADISTICAS) is False
     assert tiene_permiso("DOCENTE", MODULO_USUARIOS) is False
     assert tiene_permiso("DOCENTE", MODULO_PROMOCION) is False
+    assert tiene_permiso("ASISTENTE", MODULO_ESTADISTICAS) is True
     assert tiene_permiso("ASISTENTE", MODULO_USUARIOS) is False
 
 
@@ -713,3 +719,199 @@ def test_ui_usuario_todos_los_botones(tk_app, db_entorno, mocks_dialogos):
 
     usr_desactivado = repo_usr.obtener_por_username("auxiliar")
     assert usr_desactivado is None or usr_desactivado.estado_activo == 0
+
+
+# ═════════════════════════════════════════════════════════════════════
+# 11. UI LOGIN RECUPERACIÓN EN 2 PASOS Y MÓDULO ESTADÍSTICAS (FASE 2)
+# ═════════════════════════════════════════════════════════════════════
+
+def test_ui_login_modal_recuperacion_dos_pasos(tk_app, db_entorno, mocks_dialogos):
+    """
+    Verifica el flujo completo del enlace '¿Olvidó su usuario o contraseña?' en ui_login.py:
+    - Modal compacto sin maximizar.
+    - Paso 1: clave maestra errónea muestra error sin habilitar Paso 2 ni exponer usuarios.
+    - Paso 1 correcto habilita Combobox de usuarios activos y campos de contraseña.
+    - Paso 2: restablecimiento exitoso permite iniciar sesión de inmediato con la nueva clave.
+    """
+    repo_usr = SQLiteRepositorioUsuario(db_entorno)
+    cb_login = MagicMock()
+
+    win_login = tk.Toplevel(tk_app)
+    login = VentanaLogin(repo_usr, on_login_exitoso=cb_login, root=win_login)
+
+    assert hasattr(login, "btn_recuperar")
+    login.abrir_modal_recuperacion()
+
+    modal = login._modal_recuperacion
+    assert modal is not None
+    assert modal["win"].winfo_exists()
+    assert modal["win"].resizable() == (False, False)
+
+    # Paso 2 debe iniciar deshabilitado
+    assert str(modal["combo_usuarios"].cget("state")) == "disabled"
+    assert str(modal["btn_restablecer"].cget("state")) == "disabled"
+
+    # Paso 1 fallido
+    modal["entry_maestra"].insert(0, "CLAVE_MALA")
+    modal["btn_validar"].invoke()
+    assert mocks_dialogos["showerror"].call_count >= 1
+    assert str(modal["combo_usuarios"].cget("state")) == "disabled"
+    assert len(modal["combo_usuarios"]["values"]) == 0
+
+    # Paso 1 exitoso
+    modal["entry_maestra"].delete(0, tk.END)
+    modal["entry_maestra"].insert(0, "DIRECTOR2025")
+    modal["btn_validar"].invoke()
+    assert str(modal["combo_usuarios"].cget("state")) == "readonly"
+    assert str(modal["btn_restablecer"].cget("state")) == "normal"
+    assert any("admin" in v for v in modal["combo_usuarios"]["values"])
+
+    # Seleccionar 'admin - ADMIN' y probar discordancia de contraseñas
+    modal["combo_usuarios"].set("admin - ADMIN")
+    modal["entry_nueva"].insert(0, "NuevaClave2026")
+    modal["entry_confirmar"].insert(0, "OtraClave")
+    modal["btn_restablecer"].invoke()
+    assert mocks_dialogos["showwarning"].call_count >= 1
+
+    # Confirmar correctamente y restablecer
+    modal["entry_confirmar"].delete(0, tk.END)
+    modal["entry_confirmar"].insert(0, "NuevaClave2026")
+    modal["btn_restablecer"].invoke()
+    assert mocks_dialogos["showinfo"].call_count >= 1
+    assert not modal["win"].winfo_exists()
+
+    # Iniciar sesión inmediatamente con la nueva clave
+    login.entry_usuario.delete(0, tk.END)
+    login.entry_usuario.insert(0, "admin")
+    login.entry_password.delete(0, tk.END)
+    login.entry_password.insert(0, "NuevaClave2026")
+    login.iniciar_sesion()
+    assert cb_login.call_count == 1
+    assert cb_login.call_args[0][0].username == "admin"
+
+
+def test_ui_menu_principal_estadisticas_rbac_docente_bloqueado(tk_app):
+    """
+    Verifica tarjeta de Estadísticas en MenuPrincipalUI:
+    - ADMIN/ASISTENTE disparan el callback al hacer clic en la tarjeta.
+    - DOCENTE ve la tarjeta bloqueada ('🔒 Sin acceso') y no tiene callback vinculado.
+    """
+    cb_stats_doc = MagicMock()
+    usr_doc = Usuario(
+        id_usuario=2,
+        nombre_completo="Docente Prueba",
+        username="docente1",
+        password="hash",
+        rol="DOCENTE",
+    )
+    win_doc = tk.Toplevel(tk_app)
+    MenuPrincipalUI(usr_doc, {MODULO_ESTADISTICAS: cb_stats_doc}, root=win_doc)
+    win_doc.update_idletasks()
+
+    # Verificar que aparece tarjeta de Estadísticas con etiqueta de bloqueo para DOCENTE
+    textos_labels = []
+
+    def _recolectar_labels(w):
+        for ch in w.winfo_children():
+            if isinstance(ch, tk.Label):
+                textos_labels.append(ch.cget("text"))
+            _recolectar_labels(ch)
+
+    _recolectar_labels(win_doc)
+    assert any("Estadísticas" in t for t in textos_labels)
+    assert any("Sin acceso" in t for t in textos_labels)
+    win_doc.destroy()
+
+    # Para ASISTENTE sí debe permitir clic directo en la tarjeta de Estadísticas
+    cb_stats_asist = MagicMock()
+    usr_asist = Usuario(
+        id_usuario=3,
+        nombre_completo="Asistente Prueba",
+        username="asist1",
+        password="hash",
+        rol="ASISTENTE",
+    )
+    win_asist = tk.Toplevel(tk_app)
+    MenuPrincipalUI(usr_asist, {MODULO_ESTADISTICAS: cb_stats_asist}, root=win_asist)
+    win_asist.update_idletasks()
+
+    lbl_stats = None
+
+    def _buscar_label_stats(w):
+        nonlocal lbl_stats
+        for ch in w.winfo_children():
+            if isinstance(ch, tk.Label) and "Estadísticas" in ch.cget("text"):
+                lbl_stats = ch
+                return
+            _buscar_label_stats(ch)
+
+    _buscar_label_stats(win_asist)
+    assert lbl_stats is not None
+    lbl_stats.event_generate("<Button-1>")
+    win_asist.update()
+    assert cb_stats_asist.call_count == 1
+    win_asist.destroy()
+
+
+def test_ui_estadisticas_botones_y_canvas_renderizado(tk_app, db_entorno, tmp_path, mocks_dialogos):
+    """
+    Verifica UIEstadisticas:
+    - Renderiza KPIs y gráficos puros en tk.Canvas (canvas_secciones y canvas_distribucion).
+    - Leyenda P/A/J en 3 filas apiladas verticalmente sin solapamiento ni recorte horizontal.
+    - Botón 'Actualizar Métricas' recalcula métricas al cambiar la BD.
+    - Botón 'Exportar PDF' genera archivo PDF real en tmp_path con cabecera %PDF-.
+    - Botón '← Volver al Panel' cierra la ventana limpiamente.
+    """
+    repo_stats = RepositorioEstadisticasSQLite(db_entorno)
+    exportador = ExportadorPDFReportLab()
+    ui = UIEstadisticas(repo_estadisticas=repo_stats, parent=tk_app, exportador_pdf=exportador)
+    ui.root.geometry("980x680+0+0")
+    ui.root.update()
+
+    assert ui.lbl_kpi_estudiantes.cget("text") == "1"
+    assert ui.lbl_kpi_docentes.cget("text") == "1"
+    assert len(ui.canvas_secciones.find_all()) > 0
+    assert len(ui.canvas_distribucion.find_all()) > 0
+
+    # Verificar que las 3 líneas de leyenda P/A/J están apiladas verticalmente y dentro del canvas
+    items_leyenda = ui.canvas_distribucion.find_withtag("leyenda_paj")
+    assert len(items_leyenda) == 3
+    coords_y = []
+    w_canvas = ui.canvas_distribucion.winfo_width()
+    for item_id in items_leyenda:
+        bbox = ui.canvas_distribucion.bbox(item_id)
+        assert bbox is not None
+        coords_y.append(bbox[1])
+        assert bbox[2] <= w_canvas, f"Leyenda {item_id} excede ancho del canvas ({bbox[2]} > {w_canvas})"
+    assert len(set(coords_y)) == 3, f"Las 3 leyendas deben estar en filas Y distintas: {coords_y}"
+
+    # Insertar una falta en BD para poner al estudiante en riesgo (< 75%: 1P, 1A = 50%)
+    conn = db_entorno.conectar()
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO TBL_ASISTENCIA (ID_ESTUDIANTE, ID_CLASE, FECHA, ESTADO) VALUES ('V-30111222', 1, '2026-11-21', 'A')"
+    )
+    conn.commit()
+    db_entorno.cerrar()
+
+    # Invocar botón Actualizar Métricas
+    ui.btn_actualizar.invoke()
+    ui.root.update_idletasks()
+    assert ui.lbl_kpi_riesgo.cget("text") == "1"
+    assert len(ui.tree_riesgo.get_children()) == 1
+
+    # Invocar botón Exportar PDF
+    pdf_salida = str(tmp_path / "estadisticas_ui_salida.pdf")
+    mocks_dialogos["asksaveasfilename"].return_value = pdf_salida
+    mocks_dialogos["askyesno"].return_value = True
+    ui.btn_exportar_pdf.invoke()
+    assert os.path.exists(pdf_salida)
+    assert os.path.getsize(pdf_salida) > 1000
+    with open(pdf_salida, "rb") as f:
+        assert f.read(5).startswith(b"%PDF-")
+
+    # Invocar botón ← Volver al Panel
+    assert ui.btn_volver is not None
+    ui.btn_volver.invoke()
+    ui.root.update_idletasks()
+    assert not ui.root.winfo_exists()

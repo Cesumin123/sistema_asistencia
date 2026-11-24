@@ -425,3 +425,165 @@ class ExportadorPDFReportLab(PuertoExportadorPDF):
 
         doc.build(elementos, onFirstPage=self._dibujar_membrete, onLaterPages=self._dibujar_membrete)
         return ruta_salida
+
+    def generar_reporte_estadisticas(self, resumen: Any, ruta_salida: str) -> bool:
+        """
+        Genera el reporte PDF institucional consolidado de estadísticas escolares
+        con membrete oficial, KPIs, asistencia por sección, desglose P/A/J, género y alertas Art. 109 RGLOE.
+        """
+        try:
+            dir_salida = os.path.dirname(ruta_salida)
+            if dir_salida and not os.path.exists(dir_salida):
+                os.makedirs(dir_salida, exist_ok=True)
+
+            doc = SimpleDocTemplate(
+                ruta_salida,
+                pagesize=letter,
+                rightMargin=40,
+                leftMargin=40,
+                topMargin=115,
+                bottomMargin=45,
+            )
+
+            elementos = []
+            estilos = getSampleStyleSheet()
+
+            estilo_tit = estilos["Heading2"]
+            estilo_tit.alignment = 1
+            elementos.append(
+                Paragraph("<b>REPORTE DE ESTADÍSTICAS INSTITUCIONALES (ART. 109 RGLOE)</b>", estilo_tit)
+            )
+            elementos.append(Spacer(1, 10))
+
+            # 1. Resumen de KPIs
+            est_act = getattr(resumen, "total_estudiantes_activos", 0)
+            doc_act = getattr(resumen, "total_docentes_activos", 0)
+            clases_act = getattr(resumen, "total_clases_activas", 0)
+            tasa_global = getattr(resumen, "tasa_asistencia_global", 100.0)
+            total_riesgo = getattr(resumen, "total_en_riesgo", 0)
+
+            datos_kpi = [
+                ["Estudiantes Activos", "Docentes Activos", "Clases Activas", "% Asist. Global", "En Riesgo (<75%)"],
+                [str(est_act), str(doc_act), str(clases_act), f"{tasa_global:.1f}%", str(total_riesgo)],
+            ]
+            tbl_kpi = Table(datos_kpi, colWidths=[106, 106, 106, 106, 106])
+            tbl_kpi.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2c3e50")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTNAME", (0, 1), (-1, 1), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, -1), 9),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("BACKGROUND", (0, 1), (-1, 1), colors.HexColor("#f8f9f9")),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#bdc3c7")),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ]))
+            elementos.append(tbl_kpi)
+            elementos.append(Spacer(1, 14))
+
+            # 2. Desglose P / A / J y Género
+            elementos.append(Paragraph("<b>DISTRIBUCIÓN DE ASISTENCIA (P / A / J) Y MATRÍCULA POR GÉNERO</b>", estilos["Heading3"]))
+            elementos.append(Spacer(1, 4))
+
+            dist = getattr(resumen, "distribucion_estados", None)
+            gen = getattr(resumen, "distribucion_genero", None)
+            p_cnt = getattr(dist, "presentes", 0) if dist else 0
+            j_cnt = getattr(dist, "justificadas", 0) if dist else 0
+            a_cnt = getattr(dist, "ausentes", 0) if dist else 0
+            p_pct = getattr(dist, "porcentaje_presentes", 0.0) if dist else 0.0
+            j_pct = getattr(dist, "porcentaje_justificadas", 0.0) if dist else 0.0
+            a_pct = getattr(dist, "porcentaje_ausentes", 0.0) if dist else 0.0
+
+            m_cnt = getattr(gen, "masculino", 0) if gen else 0
+            f_cnt = getattr(gen, "femenino", 0) if gen else 0
+            m_pct = getattr(gen, "porcentaje_masculino", 0.0) if gen else 0.0
+            f_pct = getattr(gen, "porcentaje_femenino", 0.0) if gen else 0.0
+
+            datos_dist = [
+                ["Indicador de Asistencia", "Cantidad", "Porcentaje", "Matrícula por Género", "Cantidad", "Porcentaje"],
+                ["Presentes (P)", str(p_cnt), f"{p_pct:.1f}%", "Masculino (M)", str(m_cnt), f"{m_pct:.1f}%"],
+                ["Justificadas (J)", str(j_cnt), f"{j_pct:.1f}%", "Femenino (F)", str(f_cnt), f"{f_pct:.1f}%"],
+                ["Ausentes (A)", str(a_cnt), f"{a_pct:.1f}%", "Total Activos", str(m_cnt + f_cnt), "100.0%" if (m_cnt + f_cnt) > 0 else "0.0%"],
+            ]
+            tbl_dist = Table(datos_dist, colWidths=[120, 65, 80, 120, 65, 80])
+            tbl_dist.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#d5d8dc")),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+                ("ALIGN", (1, 0), (2, -1), "CENTER"),
+                ("ALIGN", (4, 0), (5, -1), "CENTER"),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#bdc3c7")),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ]))
+            elementos.append(tbl_dist)
+            elementos.append(Spacer(1, 14))
+
+            # 3. Tabla de Asistencia por Sección
+            elementos.append(Paragraph("<b>ASISTENCIA EFECTIVA POR GRADO Y SECCIÓN</b>", estilos["Heading3"]))
+            elementos.append(Spacer(1, 4))
+
+            metricas = getattr(resumen, "metricas_por_seccion", []) or []
+            if metricas:
+                filas_sec = [["Sección", "Presentes", "Justif.", "Ausentes", "Total Reg.", "% Asistencia", "Condición (>=75%)"]]
+                for m in metricas:
+                    estado_sec = "CUMPLE (>=75%)" if m.tasa_efectiva >= 75.0 else "ALERTA (<75%)"
+                    filas_sec.append([
+                        m.etiqueta, str(m.presentes), str(m.justificadas),
+                        str(m.ausentes), str(m.total_registros),
+                        f"{m.tasa_efectiva:.1f}%", estado_sec,
+                    ])
+                tbl_sec = Table(filas_sec, colWidths=[95, 65, 55, 65, 65, 75, 110], repeatRows=1)
+                tbl_sec.setStyle(TableStyle([
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#34495e")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#bdc3c7")),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ]))
+                elementos.append(tbl_sec)
+            else:
+                elementos.append(Paragraph("<i>Sin registros de asistencia agrupados por sección.</i>", estilos["Italic"]))
+            elementos.append(Spacer(1, 14))
+
+            # 4. Estudiantes en Alerta Crítica (< 75% Art. 109 RGLOE)
+            elementos.append(Paragraph("<b>ESTUDIANTES EN ALERTA CRÍTICA (&lt; 75.0% ART. 109 RGLOE)</b>", estilos["Heading3"]))
+            elementos.append(Spacer(1, 4))
+
+            riesgos = getattr(resumen, "estudiantes_en_riesgo", []) or []
+            if riesgos:
+                filas_r = [["Cédula", "Estudiante", "Grado / Sección", "Efectivas (P+J)", "Clases", "% Asist."]]
+                for est in riesgos:
+                    filas_r.append([
+                        est.id_estudiante,
+                        est.nombre,
+                        f"{est.grado} {est.seccion}",
+                        str(est.asistencias_efectivas),
+                        str(est.total_clases),
+                        f"{est.porcentaje_asistencia:.1f}%",
+                    ])
+                tbl_r = Table(filas_r, colWidths=[85, 175, 100, 70, 45, 55], repeatRows=1)
+                tbl_r.setStyle(TableStyle([
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#c0392b")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("ALIGN", (1, 1), (1, -1), "LEFT"),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#bdc3c7")),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ]))
+                elementos.append(tbl_r)
+            else:
+                elementos.append(Paragraph("<i>No se registran estudiantes por debajo del 75.0% de asistencia.</i>", estilos["Italic"]))
+
+            doc.build(elementos, onFirstPage=self._dibujar_membrete, onLaterPages=self._dibujar_membrete)
+            return True
+        except Exception as error:
+            print(f"Error al generar PDF de estadísticas: {error}")
+            return False

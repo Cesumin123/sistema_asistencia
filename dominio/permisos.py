@@ -13,6 +13,7 @@ MODULO_ACADEMICO = "academico"
 MODULO_ASISTENCIA = "asistencia"
 MODULO_LISTADOS = "listados"
 MODULO_REPORTES = "reportes"
+MODULO_ESTADISTICAS = "estadisticas"
 MODULO_PROMOCION = "promocion"
 MODULO_USUARIOS = "usuarios"
 
@@ -22,16 +23,17 @@ TODOS_LOS_MODULOS = {
     MODULO_ASISTENCIA,
     MODULO_LISTADOS,
     MODULO_REPORTES,
+    MODULO_ESTADISTICAS,
     MODULO_PROMOCION,
     MODULO_USUARIOS
 }
 
 # Matriz Oficial de Permisos por Rol (AGENTS.md)
 # - ADMIN: acceso total a todos los módulos.
-# - ASISTENTE: acceso a Estudiantes, Asistencia, Listados y Reportes PDF.
+# - ASISTENTE: acceso a Estudiantes, Asistencia, Listados, Reportes PDF y Estadísticas.
 #              Denegado: Gestión Académica, Promoción Anual y Gestión de Usuarios.
 # - DOCENTE: acceso a Asistencia y Listados (solo lectura).
-#            Denegado: Estudiantes, Gestión Académica, Reportes PDF, Promoción Anual y Gestión de Usuarios.
+#            Denegado: Estudiantes, Gestión Académica, Reportes PDF, Estadísticas, Promoción Anual y Gestión de Usuarios.
 MATRIZ_PERMISOS_ROLES: Dict[str, Set[str]] = {
     "ADMIN": {
         MODULO_ESTUDIANTES,
@@ -39,6 +41,7 @@ MATRIZ_PERMISOS_ROLES: Dict[str, Set[str]] = {
         MODULO_ASISTENCIA,
         MODULO_LISTADOS,
         MODULO_REPORTES,
+        MODULO_ESTADISTICAS,
         MODULO_PROMOCION,
         MODULO_USUARIOS,
     },
@@ -47,6 +50,7 @@ MATRIZ_PERMISOS_ROLES: Dict[str, Set[str]] = {
         MODULO_ASISTENCIA,
         MODULO_LISTADOS,
         MODULO_REPORTES,
+        MODULO_ESTADISTICAS,
     },
     "DOCENTE": {
         MODULO_ASISTENCIA,

@@ -132,7 +132,7 @@ class SelectorClaseUI:
         self.root.title("Seleccionar Clase — Pase de Lista")
         self.root.config(bg=COLOR_FONDO_APP)
         centrar_ventana(self.root, 550, 380)
-        configurar_ventana_hija(self.root, parent)
+        configurar_ventana_hija(self.root, parent, es_modal=True)
         agregar_barra_superior_volver(self.root, parent, "Asistencia")
 
     def mostrar(self):

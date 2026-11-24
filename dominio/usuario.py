@@ -69,3 +69,40 @@ class Usuario:
         # Si la contraseña no está hasheada aún (no contiene '$'), validamos longitud mínima
         if "$" not in self.password and len(self.password) < 4:
             raise ValueError("La contraseña debe tener al menos 4 caracteres por seguridad.")
+
+
+class ServicioRecuperacionUsuario:
+    """
+    Servicio puro del dominio para validación de clave maestra institucional
+    y reglas de restablecimiento offline de contraseñas.
+    """
+    CLAVE_MAESTRA_INSTITUCIONAL = "DIRECTOR2025"
+
+    @classmethod
+    def validar_clave_maestra(
+        cls,
+        clave_ingresada: Optional[str],
+        clave_esperada: str = CLAVE_MAESTRA_INSTITUCIONAL,
+    ) -> bool:
+        """
+        Valida la clave maestra institucional mediante comparación en tiempo constante.
+        Lanza PermissionError si no coincide.
+        """
+        ingresada = str(clave_ingresada).strip() if clave_ingresada is not None else ""
+        esperada = str(clave_esperada).strip()
+        if not ingresada or not secrets.compare_digest(ingresada, esperada):
+            raise PermissionError("Clave maestra institucional inválida.")
+        return True
+
+    @staticmethod
+    def validar_nueva_password(nueva_password: Optional[str]) -> str:
+        """
+        Valida que la nueva contraseña cumpla la longitud mínima del dominio (4 caracteres).
+        Retorna la contraseña normalizada o lanza ValueError.
+        """
+        pwd = str(nueva_password).strip() if nueva_password is not None else ""
+        if not pwd:
+            raise ValueError("La nueva contraseña es obligatoria.")
+        if len(pwd) < 4:
+            raise ValueError("La nueva contraseña debe tener al menos 4 caracteres por seguridad.")
+        return pwd

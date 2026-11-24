@@ -40,3 +40,8 @@ class PuertoExportadorPDF(ABC):
     def generar_ficha_estudiante(self, estudiante: Any, resumen_asistencia: Optional[dict] = None, ruta_salida: Optional[str] = None) -> str:
         """Construye la ficha oficial de inscripción/expediente del estudiante y retorna la ruta del PDF."""
         pass
+
+    @abstractmethod
+    def generar_reporte_estadisticas(self, resumen: Any, ruta_salida: str) -> bool:
+        """Genera el reporte PDF consolidado de estadísticas institucionales."""
+        pass

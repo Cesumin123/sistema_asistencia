@@ -25,7 +25,7 @@ from adaptadores.ui.utilidades_ui import (
     FUENTE_PEQUEÑA, FUENTE_PEQUEÑA_BOLD,
     crear_boton, crear_tarjeta, crear_separador,
     crear_treeview_zebra, insertar_fila_zebra,
-    configurar_ventana_hija, restaurar_foco,
+    configurar_ventana_hija, restaurar_foco, AyudaVisual,
 )
 
 
@@ -56,7 +56,7 @@ class UIReportes:
 
         self.root.title("Reportes y Estadísticas — Art. 109 RGLOE")
         self.root.config(bg=COLOR_FONDO_APP)
-        centrar_ventana(self.root, 1100, 750)
+        centrar_ventana(self.root, 980, 680)
         maximizar_ventana(self.root)
 
         self.contexto_actual = "GENERAL"
@@ -66,23 +66,22 @@ class UIReportes:
 
     def _crear_interfaz(self):
         # ═══ ENCABEZADO ═══
-        f_header = tk.Frame(self.root, bg=COLOR_PRIMARIO, pady=10)
+        f_header = tk.Frame(self.root, bg=COLOR_PRIMARIO, pady=8)
         f_header.pack(fill="x")
         tk.Label(f_header, text="📊  REPORTES Y ANÁLISIS DE RIESGO (ART. 109 RGLOE)", font=FUENTE_ENCABEZADO, fg=COLOR_TEXTO_CLARO, bg=COLOR_PRIMARIO).pack()
 
         # Pestañas
         self.notebook = ttk.Notebook(self.root)
-        self.notebook.pack(pady=10, fill="x", padx=15)
+        self.notebook.pack(pady=(6, 4), fill="x", padx=12)
         self._crear_pestañas()
 
-        # Tabla de resultados
-        self._crear_tabla_resultados()
-
-        # Barra de resumen
+        # Botones de acción y barra de resumen empaquetados abajo ANTES del Treeview
+        # para garantizar visibilidad permanente en 1024x768
+        self._crear_botones_accion()
         self._crear_barra_resumen()
 
-        # Botones de acción
-        self._crear_botones_accion()
+        # Tabla de resultados (ocupa el espacio central restante)
+        self._crear_tabla_resultados()
 
     def _crear_pestañas(self):
         # 1. Reporte Diario
@@ -124,23 +123,36 @@ class UIReportes:
     def _crear_tabla_resultados(self):
         columnas = ("fecha", "cedula", "nombre", "genero", "materia", "estado", "observacion", "pct_estudiante")
         encabezados = ["Fecha", "Cédula", "Estudiante", "Gen", "Materia", "ST", "Justificación", "% Asist."]
-        anchos = [90, 100, 220, 40, 160, 50, 200, 110]
+        anchos = [80, 95, 250, 40, 155, 45, 165, 85]
         anclas = ["center", "center", "w", "center", "w", "center", "w", "center"]
 
-        self.tree, frame_tabla = crear_treeview_zebra(self.root, columnas, encabezados, anchos, anclas, alto=15)
-        frame_tabla.pack(fill="both", expand=True, padx=15)
+        self.tree, frame_tabla = crear_treeview_zebra(self.root, columnas, encabezados, anchos, anclas, alto=10)
+        frame_tabla.pack(fill="both", expand=True, padx=12)
 
     def _crear_barra_resumen(self):
-        self.frame_resumen = tk.Frame(self.root, bg="#EAEDED", padx=15, pady=6)
-        self.frame_resumen.pack(fill="x", padx=15, pady=4)
+        self.frame_resumen = tk.Frame(self.root, bg="#EAEDED", padx=12, pady=5)
+        self.frame_resumen.pack(side="bottom", fill="x", padx=12, pady=(4, 2))
         self.lbl_resumen = tk.Label(self.frame_resumen, text="Esperando consulta...", font=FUENTE_PEQUEÑA_BOLD, bg="#EAEDED", fg=COLOR_TEXTO_PRINCIPAL)
         self.lbl_resumen.pack(side="left")
 
     def _crear_botones_accion(self):
-        fb = tk.Frame(self.root, bg=COLOR_FONDO_APP, pady=8)
-        fb.pack()
-        crear_boton(fb, "⚠️  VER ALERTAS DE RIESGO (< 75%)", self.mostrar_alertas_riesgo, "#D35400", COLOR_TEXTO_CLARO).pack(side="left", padx=15)
-        crear_boton(fb, "🖨️  EXPORTAR A PDF", self.generar_pdf, COLOR_PELIGRO, COLOR_TEXTO_CLARO, COLOR_PELIGRO_HOVER).pack(side="left", padx=15)
+        fb = tk.Frame(self.root, bg=COLOR_FONDO_APP, pady=6)
+        fb.pack(side="bottom", fill="x")
+        f_inner = tk.Frame(fb, bg=COLOR_FONDO_APP)
+        f_inner.pack()
+        self.btn_alertas = crear_boton(
+            f_inner, "⚠️  VER ALERTAS DE RIESGO (< 75%)", self.mostrar_alertas_riesgo,
+            "#D35400", COLOR_TEXTO_CLARO, pady=6,
+        )
+        self.btn_alertas.pack(side="left", padx=12)
+        AyudaVisual(self.btn_alertas, "Mostrar ventana con estudiantes por debajo del 75% de asistencia")
+
+        self.btn_exportar_pdf = crear_boton(
+            f_inner, "🖨️  EXPORTAR A PDF", self.generar_pdf,
+            COLOR_PELIGRO, COLOR_TEXTO_CLARO, COLOR_PELIGRO_HOVER, pady=6,
+        )
+        self.btn_exportar_pdf.pack(side="left", padx=12)
+        AyudaVisual(self.btn_exportar_pdf, "Exportar los resultados consultados a documento PDF")
 
     def _poblar_tabla(self, registros: List[AsistenciaEnriquecida]):
         for item in self.tree.get_children():
@@ -211,7 +223,7 @@ class UIReportes:
         win.title("Alertas de Riesgo — Art. 109 RGLOE")
         win.config(bg=COLOR_FONDO_APP)
         centrar_ventana(win, 800, 500)
-        configurar_ventana_hija(win, self.root)
+        configurar_ventana_hija(win, self.root, es_modal=True)
 
         tk.Label(win, text="⚠️  ALUMNOS EN RIESGO DE REPROBACIÓN (< 75%)", font=FUENTE_SUBTITULO, fg=COLOR_PELIGRO, bg=COLOR_FONDO_APP, pady=10).pack()
 

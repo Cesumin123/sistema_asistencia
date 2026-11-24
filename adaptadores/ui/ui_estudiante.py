@@ -52,7 +52,7 @@ class UIEstudiante:
 
         self.root.title("Gestión de Estudiantes — Inscripciones y Expedientes")
         self.root.config(bg=COLOR_FONDO_APP)
-        centrar_ventana(self.root, 1200, 800)
+        centrar_ventana(self.root, 980, 680)
         maximizar_ventana(self.root)
 
         self.cedula_seleccionada = None
@@ -82,16 +82,16 @@ class UIEstudiante:
     def crear_interfaz(self):
         """Construye la interfaz con formulario en tarjeta, bloque de foto y tabla zebra."""
         # ═══ ENCABEZADO ═══
-        f_header = tk.Frame(self.root, bg=COLOR_PRIMARIO, pady=12)
+        f_header = tk.Frame(self.root, bg=COLOR_PRIMARIO, pady=8)
         f_header.pack(fill="x")
         tk.Label(
             f_header, text="📋  EXPEDIENTES Y FICHAS TÉCNICAS DE ESTUDIANTES",
             font=FUENTE_SUBTITULO, fg=COLOR_TEXTO_CLARO, bg=COLOR_PRIMARIO,
-        ).pack(side="left", padx=20)
+        ).pack(side="left", padx=16)
 
         # ═══ TARJETA DE FORMULARIO ═══
-        tarjeta = crear_tarjeta(self.root, padx=20, pady=15)
-        tarjeta.pack(fill="x", padx=15, pady=(10, 5))
+        tarjeta = crear_tarjeta(self.root, padx=14, pady=10)
+        tarjeta.pack(fill="x", padx=10, pady=(6, 4))
 
         # Variables Tkinter
         self.var_nac = tk.StringVar(value="V")
@@ -101,15 +101,17 @@ class UIEstudiante:
         self.var_turno = tk.StringVar(value="Mañana")
         self.var_condicion = tk.StringVar(value="Activo")
 
-        # Contenedor dividido en 2 columnas: Datos (izquierda) y Foto (derecha)
+        # Contenedor dividido en 2 columnas con grid (campos flexibles + foto fija visible en 1024px)
         f_contenedor_form = tk.Frame(tarjeta, bg=COLOR_TARJETA)
         f_contenedor_form.pack(fill="x")
+        f_contenedor_form.columnconfigure(0, weight=1)
+        f_contenedor_form.columnconfigure(1, minsize=148)
 
         f_datos = tk.Frame(f_contenedor_form, bg=COLOR_TARJETA)
-        f_datos.pack(side="left", fill="both", expand=True, padx=(0, 15))
+        f_datos.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
 
-        f_foto_est = tk.Frame(f_contenedor_form, bg=COLOR_TARJETA, width=140)
-        f_foto_est.pack(side="right", fill="y", padx=(10, 0))
+        f_foto_est = tk.Frame(f_contenedor_form, bg=COLOR_TARJETA, width=148)
+        f_foto_est.grid(row=0, column=1, sticky="ns")
 
         # ──────────────────────────────────────────────────────────
         # SUB-BLOQUE 1: DATOS PERSONALES Y ACADÉMICOS
@@ -127,70 +129,70 @@ class UIEstudiante:
             f1, textvariable=self.var_nac, values=["V", "E", "P"],
             width=3, state="readonly",
         )
-        self.combo_nac.pack(side="left", padx=(4, 0))
-        self.entry_cedula = tk.Entry(f1, width=13, font=FUENTE_CUERPO, relief="solid", bd=1)
-        self.entry_cedula.pack(side="left", padx=(4, 15))
+        self.combo_nac.pack(side="left", padx=(3, 0))
+        self.entry_cedula = tk.Entry(f1, width=11, font=FUENTE_CUERPO, relief="solid", bd=1)
+        self.entry_cedula.pack(side="left", padx=(3, 10))
         AyudaVisual(self.entry_cedula, "Número de cédula sin puntos.")
 
         tk.Label(f1, text="Nombre Completo:", bg=COLOR_TARJETA, font=FUENTE_ETIQUETA).pack(side="left")
-        self.entry_nombre = tk.Entry(f1, width=28, font=FUENTE_CUERPO, relief="solid", bd=1)
-        self.entry_nombre.pack(side="left", padx=(4, 15))
+        self.entry_nombre = tk.Entry(f1, width=25, font=FUENTE_CUERPO, relief="solid", bd=1)
+        self.entry_nombre.pack(side="left", padx=(3, 10))
         self.entry_nombre.bind("<KeyRelease>", self.convertir_mayus)
 
         tk.Label(f1, text="Género:", bg=COLOR_TARJETA, font=FUENTE_ETIQUETA).pack(side="left")
         self.combo_genero = ttk.Combobox(
             f1, textvariable=self.var_genero, values=["M", "F"],
-            width=4, state="readonly",
+            width=3, state="readonly",
         )
-        self.combo_genero.pack(side="left")
+        self.combo_genero.pack(side="left", padx=(3, 0))
 
         # Fila 2: Fecha Nac, Año, Sección, Escolaridad, Turno, Condición
         f2 = tk.Frame(f_datos, bg=COLOR_TARJETA)
-        f2.pack(fill="x", pady=3)
+        f2.pack(fill="x", pady=2)
 
         tk.Label(f2, text="F. Nac:", bg=COLOR_TARJETA, font=FUENTE_ETIQUETA).pack(side="left")
         self.calendario = DateEntry(
-            f2, width=10, date_pattern='dd/mm/yyyy', locale='es_ES',
+            f2, width=9, date_pattern='dd/mm/yyyy', locale='es_ES',
             background='darkblue', state="readonly",
         )
-        self.calendario.pack(side="left", padx=(4, 12))
+        self.calendario.pack(side="left", padx=(3, 8))
 
-        tk.Label(f2, text="Año (1-5):", bg=COLOR_TARJETA, font=FUENTE_ETIQUETA).pack(side="left")
-        self.entry_grado = tk.Entry(f2, width=4, font=FUENTE_CUERPO, relief="solid", bd=1)
-        self.entry_grado.pack(side="left", padx=(4, 12))
+        tk.Label(f2, text="Año:", bg=COLOR_TARJETA, font=FUENTE_ETIQUETA).pack(side="left")
+        self.entry_grado = tk.Entry(f2, width=3, font=FUENTE_CUERPO, relief="solid", bd=1)
+        self.entry_grado.pack(side="left", padx=(3, 8))
 
-        tk.Label(f2, text="Sección:", bg=COLOR_TARJETA, font=FUENTE_ETIQUETA).pack(side="left")
+        tk.Label(f2, text="Sec:", bg=COLOR_TARJETA, font=FUENTE_ETIQUETA).pack(side="left")
         self.combo_seccion = ttk.Combobox(
             f2, textvariable=self.var_seccion,
             values=list(string.ascii_uppercase), width=3, state="readonly",
         )
-        self.combo_seccion.pack(side="left", padx=(4, 12))
+        self.combo_seccion.pack(side="left", padx=(3, 8))
 
-        tk.Label(f2, text="Escolaridad:", bg=COLOR_TARJETA, font=FUENTE_ETIQUETA).pack(side="left")
+        tk.Label(f2, text="Escol.:", bg=COLOR_TARJETA, font=FUENTE_ETIQUETA).pack(side="left")
         self.combo_escolaridad = ttk.Combobox(
             f2, textvariable=self.var_escolaridad,
-            values=["Regular", "Materia Pendiente", "Repite"], width=13, state="readonly",
+            values=["Regular", "Materia Pendiente", "Repite"], width=12, state="readonly",
         )
-        self.combo_escolaridad.pack(side="left", padx=(4, 10))
+        self.combo_escolaridad.pack(side="left", padx=(3, 8))
 
         tk.Label(f2, text="Turno:", bg=COLOR_TARJETA, font=FUENTE_ETIQUETA).pack(side="left")
         self.combo_turno = ttk.Combobox(
             f2, textvariable=self.var_turno,
-            values=["Mañana", "Tarde"], width=8, state="readonly",
+            values=["Mañana", "Tarde"], width=7, state="readonly",
         )
-        self.combo_turno.pack(side="left", padx=(4, 10))
+        self.combo_turno.pack(side="left", padx=(3, 8))
 
-        tk.Label(f2, text="Condición:", bg=COLOR_TARJETA, font=FUENTE_ETIQUETA).pack(side="left")
+        tk.Label(f2, text="Cond:", bg=COLOR_TARJETA, font=FUENTE_ETIQUETA).pack(side="left")
         self.combo_condicion = ttk.Combobox(
             f2, textvariable=self.var_condicion,
             values=["Activo", "Preinscrito"], width=9, state="readonly",
         )
-        self.combo_condicion.pack(side="left", padx=(4, 0))
+        self.combo_condicion.pack(side="left", padx=(3, 0))
 
         # ──────────────────────────────────────────────────────────
         # SUB-BLOQUE 2: DATOS FAMILIARES Y REPRESENTANTES
         # ──────────────────────────────────────────────────────────
-        crear_separador(f_datos).pack(fill="x", pady=5)
+        crear_separador(f_datos).pack(fill="x", pady=4)
         tk.Label(
             f_datos, text="NÚCLEO FAMILIAR Y REPRESENTACIÓN LEGAL",
             font=FUENTE_PEQUEÑA, bg=COLOR_TARJETA, fg=COLOR_PRIMARIO
@@ -201,44 +203,48 @@ class UIEstudiante:
         f3.pack(fill="x", pady=2)
 
         tk.Label(f3, text="Representante Legal:", bg=COLOR_TARJETA, font=FUENTE_ETIQUETA, fg=COLOR_PRIMARIO).pack(side="left")
-        self.entry_repre = tk.Entry(f3, width=28, font=FUENTE_CUERPO, relief="solid", bd=1)
-        self.entry_repre.pack(side="left", padx=(4, 15))
+        self.entry_repre = tk.Entry(f3, width=26, font=FUENTE_CUERPO, relief="solid", bd=1)
+        self.entry_repre.pack(side="left", padx=(4, 10))
         self.entry_repre.bind("<KeyRelease>", self.convertir_mayus)
 
         tk.Label(f3, text="Teléfono Repr.:", bg=COLOR_TARJETA, font=FUENTE_ETIQUETA, fg=COLOR_PRIMARIO).pack(side="left")
-        self.entry_telf = tk.Entry(f3, width=14, font=FUENTE_CUERPO, relief="solid", bd=1)
+        self.entry_telf = tk.Entry(f3, width=13, font=FUENTE_CUERPO, relief="solid", bd=1)
         self.entry_telf.pack(side="left", padx=(4, 0))
 
-        # Fila 4: Datos de la Madre y Padre
-        f4 = tk.Frame(f_datos, bg="#F0F7F4", pady=4, padx=6)
-        f4.pack(fill="x", pady=(4, 0))
+        # Fila 4: Datos de la Madre y Padre (en 2 sub-filas compactas para caber en 1024 px)
+        f4 = tk.Frame(f_datos, bg="#F0F7F4", pady=3, padx=6)
+        f4.pack(fill="x", pady=(3, 0))
 
-        tk.Label(f4, text="Madre:", bg="#F0F7F4", font=FUENTE_ETIQUETA).pack(side="left")
-        self.entry_madre = tk.Entry(f4, width=22, font=FUENTE_CUERPO, relief="solid", bd=1)
-        self.entry_madre.pack(side="left", padx=(4, 10))
+        f4_madre = tk.Frame(f4, bg="#F0F7F4")
+        f4_madre.pack(fill="x", pady=(0, 2))
+        tk.Label(f4_madre, text="Madre:", width=6, anchor="w", bg="#F0F7F4", font=FUENTE_ETIQUETA).pack(side="left")
+        self.entry_madre = tk.Entry(f4_madre, width=26, font=FUENTE_CUERPO, relief="solid", bd=1)
+        self.entry_madre.pack(side="left", padx=(4, 12))
         self.entry_madre.bind("<KeyRelease>", self.convertir_mayus)
 
-        tk.Label(f4, text="Telf. Madre:", bg="#F0F7F4", font=FUENTE_ETIQUETA).pack(side="left")
-        self.entry_telf_madre = tk.Entry(f4, width=12, font=FUENTE_CUERPO, relief="solid", bd=1)
-        self.entry_telf_madre.pack(side="left", padx=(4, 15))
+        tk.Label(f4_madre, text="Telf. Madre:", bg="#F0F7F4", font=FUENTE_ETIQUETA).pack(side="left")
+        self.entry_telf_madre = tk.Entry(f4_madre, width=13, font=FUENTE_CUERPO, relief="solid", bd=1)
+        self.entry_telf_madre.pack(side="left", padx=(4, 0))
 
-        tk.Label(f4, text="Padre:", bg="#F0F7F4", font=FUENTE_ETIQUETA).pack(side="left")
-        self.entry_padre = tk.Entry(f4, width=22, font=FUENTE_CUERPO, relief="solid", bd=1)
-        self.entry_padre.pack(side="left", padx=(4, 10))
+        f4_padre = tk.Frame(f4, bg="#F0F7F4")
+        f4_padre.pack(fill="x")
+        tk.Label(f4_padre, text="Padre:", width=6, anchor="w", bg="#F0F7F4", font=FUENTE_ETIQUETA).pack(side="left")
+        self.entry_padre = tk.Entry(f4_padre, width=26, font=FUENTE_CUERPO, relief="solid", bd=1)
+        self.entry_padre.pack(side="left", padx=(4, 12))
         self.entry_padre.bind("<KeyRelease>", self.convertir_mayus)
 
-        tk.Label(f4, text="Telf. Padre:", bg="#F0F7F4", font=FUENTE_ETIQUETA).pack(side="left")
-        self.entry_telf_padre = tk.Entry(f4, width=12, font=FUENTE_CUERPO, relief="solid", bd=1)
+        tk.Label(f4_padre, text="Telf. Padre:", bg="#F0F7F4", font=FUENTE_ETIQUETA).pack(side="left")
+        self.entry_telf_padre = tk.Entry(f4_padre, width=13, font=FUENTE_CUERPO, relief="solid", bd=1)
         self.entry_telf_padre.pack(side="left", padx=(4, 0))
 
         # ──────────────────────────────────────────────────────────
         # SUB-BLOQUE 3: FOTOGRAFÍA DEL ESTUDIANTE
         # ──────────────────────────────────────────────────────────
-        tk.Label(f_foto_est, text="Fotografía:", bg=COLOR_TARJETA, font=FUENTE_ETIQUETA).pack(anchor="center", pady=(0, 4))
+        tk.Label(f_foto_est, text="Fotografía:", bg=COLOR_TARJETA, font=FUENTE_ETIQUETA).pack(anchor="center", pady=(0, 3))
         
         self.f_foto_container = tk.Frame(f_foto_est, width=110, height=110, bg="#EAECEE", relief="solid", bd=1)
         self.f_foto_container.pack_propagate(False)
-        self.f_foto_container.pack(anchor="center", pady=(0, 6))
+        self.f_foto_container.pack(anchor="center", pady=(0, 5))
 
         self.lbl_foto = tk.Label(
             self.f_foto_container, text="[ SIN FOTO ]", bg="#EAECEE", fg=COLOR_TEXTO_SECUNDARIO,
@@ -248,35 +254,44 @@ class UIEstudiante:
 
         f_foto_btns = tk.Frame(f_foto_est, bg=COLOR_TARJETA)
         f_foto_btns.pack(fill="x")
-        self.btn_cargar_foto = crear_boton(f_foto_btns, "📷 Cargar", self.cargar_foto_click, COLOR_PRIMARIO, COLOR_TEXTO_CLARO, ancho=8)
-        self.btn_cargar_foto.pack(side="left", padx=2)
+        f_foto_btns.columnconfigure(0, weight=1, uniform="btn_foto_est")
+        f_foto_btns.columnconfigure(1, weight=1, uniform="btn_foto_est")
+
+        self.btn_cargar_foto = crear_boton(
+            f_foto_btns, "📷 Cargar", self.cargar_foto_click,
+            COLOR_PRIMARIO, COLOR_TEXTO_CLARO, padx=5, pady=4,
+        )
+        self.btn_cargar_foto.grid(row=0, column=0, sticky="ew", padx=(0, 2))
         AyudaVisual(self.btn_cargar_foto, "Cargar fotografía oficial del estudiante")
 
-        self.btn_quitar_foto = crear_boton(f_foto_btns, "✖ Quitar", self.quitar_foto_click, "#7F8C8D", COLOR_TEXTO_CLARO, ancho=7)
-        self.btn_quitar_foto.pack(side="left", padx=2)
+        self.btn_quitar_foto = crear_boton(
+            f_foto_btns, "✖ Quitar", self.quitar_foto_click,
+            "#7F8C8D", COLOR_TEXTO_CLARO, padx=5, pady=4,
+        )
+        self.btn_quitar_foto.grid(row=0, column=1, sticky="ew", padx=(2, 0))
         AyudaVisual(self.btn_quitar_foto, "Eliminar fotografía asignada")
 
         # ═══ BOTONERA PRINCIPAL ═══
         f_btns = tk.Frame(self.root, bg=COLOR_FONDO_APP)
-        f_btns.pack(pady=6)
+        f_btns.pack(pady=4)
 
-        crear_boton(f_btns, "💾  GUARDAR", self.guardar_nuevo, COLOR_ACENTO, COLOR_TEXTO_CLARO, COLOR_ACENTO_HOVER).pack(side="left", padx=5)
-        crear_boton(f_btns, "📝  MODIFICAR", self.modificar_existente, COLOR_ADVERTENCIA, COLOR_TEXTO_CLARO, COLOR_ADVERTENCIA_HOVER).pack(side="left", padx=5)
-        crear_boton(f_btns, "🗑️  ELIMINAR", self.eliminar_estudiante, COLOR_PELIGRO, COLOR_TEXTO_CLARO, COLOR_PELIGRO_HOVER).pack(side="left", padx=5)
-        crear_boton(f_btns, "🖨️  FICHA PDF", self.imprimir_ficha_click, "#2980B9", COLOR_TEXTO_CLARO, "#3498DB").pack(side="left", padx=5)
-        crear_boton(f_btns, "🧹  LIMPIAR", self.limpiar_formulario, "#95A5A6", COLOR_TEXTO_CLARO).pack(side="left", padx=5)
+        crear_boton(f_btns, "💾  GUARDAR", self.guardar_nuevo, COLOR_ACENTO, COLOR_TEXTO_CLARO, COLOR_ACENTO_HOVER, pady=5).pack(side="left", padx=4)
+        crear_boton(f_btns, "📝  MODIFICAR", self.modificar_existente, COLOR_ADVERTENCIA, COLOR_TEXTO_CLARO, COLOR_ADVERTENCIA_HOVER, pady=5).pack(side="left", padx=4)
+        crear_boton(f_btns, "🗑️  ELIMINAR", self.eliminar_estudiante, COLOR_PELIGRO, COLOR_TEXTO_CLARO, COLOR_PELIGRO_HOVER, pady=5).pack(side="left", padx=4)
+        crear_boton(f_btns, "🖨️  FICHA PDF", self.imprimir_ficha_click, "#2980B9", COLOR_TEXTO_CLARO, "#3498DB", pady=5).pack(side="left", padx=4)
+        crear_boton(f_btns, "🧹  LIMPIAR", self.limpiar_formulario, "#95A5A6", COLOR_TEXTO_CLARO, pady=5).pack(side="left", padx=4)
 
         # ═══ TABLA DE DATOS (ZEBRA) ═══
         cols = ("cedula", "nombre", "nac", "repre", "telf", "gen", "esc", "tur", "cond", "anio", "sec")
         encabezados = ["Cédula", "Nombre", "F. Nac", "Representante", "Telf", "Sexo",
                        "Escolaridad", "Turno", "Cond", "Año", "Sec"]
-        anchos = [90, 200, 80, 150, 90, 40, 90, 60, 60, 40, 40]
+        anchos = [85, 185, 78, 140, 88, 40, 88, 62, 62, 40, 40]
         anclas = ["center", "w", "center", "w", "center", "center", "center", "center", "center", "center", "center"]
 
         self.tree, frame_tree = crear_treeview_zebra(
-            self.root, cols, encabezados, anchos, anclas, alto=11,
+            self.root, cols, encabezados, anchos, anclas, alto=8,
         )
-        frame_tree.pack(fill="both", expand=True, padx=15, pady=(0, 10))
+        frame_tree.pack(fill="both", expand=True, padx=10, pady=(0, 8))
         self.tree.bind("<<TreeviewSelect>>", self.cargar_formulario_desde_tabla)
 
     # ──────────────────────────────────────────────────────────

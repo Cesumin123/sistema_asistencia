@@ -198,7 +198,7 @@ def centrar_ventana(ventana: tk.Tk | tk.Toplevel, ancho: int, alto: int):
 
 
 def _aplicar_maximizacion(ventana: tk.Tk | tk.Toplevel):
-    """Aplica maximización multiplataforma y geometría de respaldo sin lanzar TclError."""
+    """Aplica maximización multiplataforma real (Windows + Linux X11/Xfwm4) sin TclError."""
     if ventana is None:
         return
     try:
@@ -206,6 +206,11 @@ def _aplicar_maximizacion(ventana: tk.Tk | tk.Toplevel):
             return
     except Exception:
         return
+
+    try:
+        ventana.resizable(True, True)
+    except Exception:
+        pass
 
     try:
         ventana.update_idletasks()
@@ -219,26 +224,22 @@ def _aplicar_maximizacion(ventana: tk.Tk | tk.Toplevel):
     except Exception:
         pass
 
-    # 2. Linux / X11 / Wayland: attributes('-zoomed', True) + geometría de respaldo
+    # 2. Linux / X11 / Xfwm4: attributes('-zoomed', True) sin sobrescribir geometry
+    # (sobrescribir con geometry WxH+0+0 en Xfwm4 cancela _NET_WM_STATE_MAXIMIZED y tapa la barra de tareas)
     try:
+        ventana.attributes("-zoomed", True)
+        ventana.update_idletasks()
+        return
+    except Exception:
+        pass
+
+    # 3. Último respaldo solo si attributes('-zoomed', True) lanzó TclError
+    try:
+        ventana.update_idletasks()
         sw = ventana.winfo_screenwidth()
         sh = ventana.winfo_screenheight()
         if sw > 0 and sh > 0:
-            ancho_actual = ventana.winfo_width()
-            alto_actual = ventana.winfo_height()
-            if ancho_actual < int(sw * 0.9) or alto_actual < int(sh * 0.9):
-                ventana.geometry(f"{sw}x{sh}+0+0")
-                ventana.update_idletasks()
-    except Exception:
-        pass
-
-    try:
-        ventana.attributes("-zoomed", True)
-    except Exception:
-        pass
-
-    try:
-        ventana.update_idletasks()
+            ventana.geometry(f"{sw}x{sh}+0+0")
     except Exception:
         pass
 
@@ -250,14 +251,34 @@ def maximizar_ventana(ventana: tk.Tk | tk.Toplevel):
     _aplicar_maximizacion(ventana)
     try:
         if hasattr(ventana, "winfo_exists") and ventana.winfo_exists():
-            ventana.after(60, lambda v=ventana: _aplicar_maximizacion(v))
+            ventana.after(80, lambda v=ventana: _aplicar_maximizacion(v))
+            bind_id = [None]
+
+            def _on_map(_event=None):
+                try:
+                    if bind_id[0] and ventana.winfo_exists():
+                        ventana.unbind("<Map>", bind_id[0])
+                        bind_id[0] = None
+                except Exception:
+                    pass
+                _aplicar_maximizacion(ventana)
+
+            bind_id[0] = ventana.bind("<Map>", _on_map, add="+")
     except Exception:
         pass
 
 
-def configurar_ventana_hija(ventana: tk.Toplevel, padre: Optional[tk.Misc] = None):
-    """Configura transient, lift y foco para ventanas secundarias en Linux/Windows."""
-    if padre and hasattr(padre, "winfo_exists") and padre.winfo_exists():
+def configurar_ventana_hija(
+    ventana: tk.Toplevel,
+    padre: Optional[tk.Misc] = None,
+    es_modal: bool = False,
+):
+    """
+    Configura Z-order y foco para ventanas secundarias en Linux/Windows.
+    Solo aplica transient(padre) cuando es_modal=True (diálogos compactos),
+    evitando que Xfwm4 bloquee la maximización en ventanas de módulos.
+    """
+    if es_modal and padre and hasattr(padre, "winfo_exists") and padre.winfo_exists():
         try:
             ventana.transient(padre)
         except Exception:
@@ -368,6 +389,8 @@ def crear_boton(
     estado = "normal" if habilitado else "disabled"
     bg_real = color_bg if habilitado else "#BDC3C7"
     cursor = "hand2" if habilitado else "arrow"
+    padx_val = kwargs.pop("padx", 16)
+    pady_val = kwargs.pop("pady", 8)
 
     btn = tk.Button(
         parent,
@@ -381,8 +404,8 @@ def crear_boton(
         cursor=cursor,
         relief="flat",
         bd=0,
-        padx=16,
-        pady=8,
+        padx=padx_val,
+        pady=pady_val,
         command=comando if habilitado else None,
         **kwargs,
     )

@@ -23,6 +23,7 @@ from adaptadores.db.sqlite_clase import SQLiteRepositorioClase
 from adaptadores.db.sqlite_asistencia import RepositorioAsistenciaSQLite
 from adaptadores.respaldo.json_asistencia import RespaldoAsistenciaJSON
 from adaptadores.db.sqlite_reportes import RepositorioReportesSQLite
+from adaptadores.db.sqlite_estadisticas import RepositorioEstadisticasSQLite
 from adaptadores.db.sqlite_promocion import RepositorioPromocionSQLite
 from adaptadores.db.sqlite_listados import RepositorioListadosSQLite
 
@@ -44,6 +45,7 @@ from adaptadores.ui.ui_clase import GestorClasesUI
 from adaptadores.ui.ui_asistencia import GestorAsistenciaUI
 from adaptadores.ui.ui_listados import UIListados
 from adaptadores.ui.ui_reportes import UIReportes
+from adaptadores.ui.ui_estadisticas import UIEstadisticas
 from adaptadores.ui.ui_promocion import UIPromocion
 
 # Dominio y Permisos
@@ -53,6 +55,7 @@ from dominio.permisos import (
     MODULO_ASISTENCIA,
     MODULO_LISTADOS,
     MODULO_REPORTES,
+    MODULO_ESTADISTICAS,
     MODULO_PROMOCION,
     MODULO_USUARIOS,
 )
@@ -71,6 +74,7 @@ def iniciar_aplicacion():
     repo_asistencia = RepositorioAsistenciaSQLite(conexion)
     respaldo_asistencia = RespaldoAsistenciaJSON()
     repo_reportes = RepositorioReportesSQLite(conexion)
+    repo_estadisticas = RepositorioEstadisticasSQLite(conexion)
     repo_promocion = RepositorioPromocionSQLite(conexion)
     repo_listados = RepositorioListadosSQLite(conexion)
     exportador_pdf = ExportadorPDFReportLab()
@@ -134,6 +138,12 @@ def iniciar_aplicacion():
         agregar_barra_superior_volver(ui.root, padre, "Módulo de Reportes")
         maximizar_ventana(ui.root)
 
+    def abrir_estadisticas():
+        padre = _obtener_padre()
+        ui = UIEstadisticas(repo_estadisticas, parent=padre, exportador_pdf=exportador_pdf)
+        configurar_ventana_hija(ui.root, padre)
+        maximizar_ventana(ui.root)
+
     def abrir_promocion():
         padre = _obtener_padre()
         ui = UIPromocion(repo_promocion, parent=padre)
@@ -155,6 +165,7 @@ def iniciar_aplicacion():
         MODULO_ASISTENCIA: abrir_asistencia,
         MODULO_LISTADOS: abrir_listados,
         MODULO_REPORTES: abrir_reportes,
+        MODULO_ESTADISTICAS: abrir_estadisticas,
         MODULO_PROMOCION: abrir_promocion,
         MODULO_USUARIOS: abrir_usuarios,
     }

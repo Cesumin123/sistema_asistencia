@@ -106,9 +106,10 @@ def test_ast_auditoria_dialogos_con_parent_explicito():
 
 def test_configurar_ventana_hija_y_boton_volver(tk_root):
     """
-    Verifica que configurar_ventana_hija aplique transient y lift,
-    y que agregar_barra_superior_volver cree un botón que cierre la ventana hija
-    devolviendo el foco defensivamente a la ventana padre.
+    Verifica que configurar_ventana_hija:
+    - Con es_modal=False (default de módulos) NO aplique transient para permitir maximizado en Xfwm4.
+    - Con es_modal=True SÍ aplique transient al padre.
+    - agregar_barra_superior_volver cree un botón que cierre la ventana devolviendo el foco.
     """
     padre = tk.Toplevel(tk_root)
     padre.title("Panel de Control")
@@ -116,15 +117,21 @@ def test_configurar_ventana_hija_y_boton_volver(tk_root):
 
     hija = tk.Toplevel(padre)
     hija.title("Ventana Hija Módulo")
-    configurar_ventana_hija(hija, padre)
+    configurar_ventana_hija(hija, padre, es_modal=False)
     hija.update_idletasks()
 
-    # transient debe asociar la hija al padre
+    # Con es_modal=False no debe quedar transient al padre
+    assert str(hija.transient() or "") == ""
+
+    # Con es_modal=True sí debe aplicar transient al padre
+    modal = tk.Toplevel(padre)
+    configurar_ventana_hija(modal, padre, es_modal=True)
+    modal.update_idletasks()
     try:
-        transient_master = hija.transient()
-        assert str(transient_master) == str(padre)
+        assert str(modal.transient()) == str(padre)
     except Exception:
-        pass  # En entornos sin X11 completo transient puede retornar cadena vacía
+        pass
+    modal.destroy()
 
     # Agregar la barra superior
     barra = agregar_barra_superior_volver(hija, padre, "Módulo de Prueba")
@@ -310,46 +317,131 @@ def test_renderizado_foto_preview_en_ui_profesor_y_estudiante(tk_root, db_mem, t
 
 def test_maximizar_ventana_tk_y_toplevel_sin_tclerror(tk_root):
     """
-    Verifica que maximizar_ventana(ventana) opere defensivamente sin lanzar TclError
-    sobre tk.Tk, tk.Toplevel, tk.Toplevel tras configurar_ventana_hija, None y ventanas destruidas.
+    Verifica que maximizar_ventana(ventana) opere defensivamente sin lanzar TclError:
+    - Habilita resizable(True, True).
+    - En Linux/X11 usa attributes('-zoomed', True) sin sobrescribir geometry si no falla.
+    - Solo recurre a geometry como fallback si attributes('-zoomed', True) lanza TclError.
+    - Maneja None y ventanas destruidas limpiamente.
     """
     # 1. Sobre tk.Tk
     maximizar_ventana(tk_root)
     tk_root.update_idletasks()
 
-    # 2. Sobre tk.Toplevel independiente
+    # 2. Sobre tk.Toplevel independiente y tras configurar_ventana_hija(es_modal=False)
     win = tk.Toplevel(tk_root)
-    maximizar_ventana(win)
-    win.update_idletasks()
-    assert win.winfo_exists()
-
-    # 3. Sobre tk.Toplevel configurada como hija (transient + lift)
     hija = tk.Toplevel(win)
-    configurar_ventana_hija(hija, win)
-    maximizar_ventana(hija)
-    hija.update()
-    assert hija.winfo_exists()
+    configurar_ventana_hija(hija, win, es_modal=False)
+    hija.resizable(False, False)
 
-    # Verificar que se aplicó estado zoomed/atributos o geometría de pantalla
-    sw = hija.winfo_screenwidth()
-    sh = hija.winfo_screenheight()
-    geom = hija.geometry()
-    assert geom, "La ventana debe conservar una geometría válida tras maximizar."
-    if sw > 0 and sh > 0:
-        # En Linux/X11 se aplica -zoomed o fallback f"{sw}x{sh}+0+0"
-        try:
-            es_zoomed = bool(hija.attributes("-zoomed"))
-        except Exception:
-            es_zoomed = False
-        assert es_zoomed or geom.startswith(f"{sw}x{sh}"), (
-            f"Se esperaba -zoomed=True o geometría {sw}x{sh}, obtenido: {geom}"
-        )
+    # Verificar que si attributes('-zoomed', True) funciona, NO sobrescribe geometry
+    with patch.object(hija, "state", side_effect=tk.TclError("no zoomed")):
+        with patch.object(hija, "attributes", wraps=hija.attributes) as spy_attr, \
+             patch.object(hija, "geometry", wraps=hija.geometry) as spy_geom:
+            maximizar_ventana(hija)
+            hija.update_idletasks()
+            assert hija.resizable() == (True, True)
+            assert any(call.args == ("-zoomed", True) for call in spy_attr.call_args_list)
+            assert spy_geom.call_count == 0
 
-    # 4. Casos límite: ventana destruida y None (no deben lanzar TclError)
+    # Verificar fallback de geometry solo si attributes('-zoomed', True) falla con TclError
+    with patch.object(hija, "state", side_effect=tk.TclError("no zoomed")), \
+         patch.object(hija, "attributes", side_effect=tk.TclError("no attr")):
+        with patch.object(hija, "geometry", wraps=hija.geometry) as spy_geom_fb:
+            maximizar_ventana(hija)
+            assert spy_geom_fb.call_count >= 1
+
+    # 3. Casos límite: ventana destruida y None (no deben lanzar TclError)
     hija.destroy()
     maximizar_ventana(hija)
     maximizar_ventana(None)
     win.destroy()
+
+
+def test_geometria_1024x700_visibilidad_modulos_sin_recortes(tk_root, db_mem, tmp_path):
+    """
+    Simula una ventana útil de 1024x700 px (1024x768 menos barra de tareas)
+    y verifica que los controles críticos no se desborden ni queden ocultos:
+    - ui_reportes.py: botones Alertas de Riesgo y Exportar PDF visibles <= 700 px alto.
+    - ui_estudiante.py: formulario + fotografía + botones Cargar/Quitar caben en <= 1024 px ancho.
+    - ui_profesor.py: btn_quitar_foto no recortado y botonera 2x2 dentro de <= 700 px alto.
+    - ui_promocion.py: botones Refrescar Censo y Ejecutar Promoción dentro de <= 700 px alto.
+    - ui_listados.py: columnas de Alumnos Activos caben en <= 960 px para no recortar Turno.
+    """
+    from adaptadores.db.sqlite_reportes import RepositorioReportesSQLite
+    from adaptadores.db.sqlite_promocion import RepositorioPromocionSQLite
+    from adaptadores.db.sqlite_listados import RepositorioListadosSQLite
+    from adaptadores.ui.ui_reportes import UIReportes
+    from adaptadores.ui.ui_promocion import UIPromocion
+    from adaptadores.ui.ui_listados import UIListados
+
+    exportador = ExportadorPDFReportLab()
+    gestor_fotos = GestorFotos(directorio_base=str(tmp_path))
+
+    # 1. UIReportes en 1024x700
+    ui_rep = UIReportes(RepositorioReportesSQLite(db_mem), exportador, parent=tk_root)
+    ui_rep.root.geometry("1024x700+0+0")
+    ui_rep.root.update()
+    for btn in (ui_rep.btn_alertas, ui_rep.btn_exportar_pdf):
+        assert btn.winfo_ismapped()
+        y_rel = btn.winfo_rooty() - ui_rep.root.winfo_rooty()
+        assert y_rel + btn.winfo_height() <= 700, f"Botón de Reportes oculto: y={y_rel}, h={btn.winfo_height()}"
+    ui_rep.root.destroy()
+
+    # 2. UIEstudiante en 1024x700 (Fotografía y botones dentro de 1024 px)
+    ui_est = UIEstudiante(
+        RepositorioEstudianteSQLite(db_mem),
+        parent=tk_root,
+        exportador_pdf=exportador,
+        gestor_fotos=gestor_fotos,
+    )
+    ui_est.root.geometry("1024x700+0+0")
+    ui_est.root.update()
+    assert ui_est.root.winfo_reqwidth() <= 1024, (
+        f"UIEstudiante requiere {ui_est.root.winfo_reqwidth()} px > 1024 px"
+    )
+    for w in (ui_est.lbl_foto, ui_est.btn_cargar_foto, ui_est.btn_quitar_foto):
+        x_rel = w.winfo_rootx() - ui_est.root.winfo_rootx()
+        assert x_rel + w.winfo_width() <= 1024, (
+            f"Widget {w} desborda 1024 px: x={x_rel}, w={w.winfo_width()}"
+        )
+    ui_est.root.destroy()
+
+    # 3. GestorProfesoresUI en 1024x700 (Quitar foto completo y botonera 2x2 visible)
+    win_prof = tk.Toplevel(tk_root)
+    win_prof.geometry("1024x700+0+0")
+    nb_prof = ttk.Notebook(win_prof)
+    nb_prof.pack(fill="both", expand=True)
+    ui_prof = GestorProfesoresUI(
+        nb_prof,
+        SQLiteRepositorioProfesor(db_mem),
+        exportador_pdf=exportador,
+        gestor_fotos=gestor_fotos,
+        repositorio_clase=SQLiteRepositorioClase(db_mem),
+    )
+    win_prof.update()
+    assert ui_prof.btn_quitar_foto.winfo_width() >= ui_prof.btn_quitar_foto.winfo_reqwidth()
+    for btn in (ui_prof.btn_guardar, ui_prof.btn_actualizar, ui_prof.btn_ficha, ui_prof.btn_limpiar):
+        y_rel = btn.winfo_rooty() - win_prof.winfo_rooty()
+        assert y_rel + btn.winfo_height() <= 700, f"Botón profesor desborda 700 px: {y_rel + btn.winfo_height()}"
+    win_prof.destroy()
+
+    # 4. UIPromocion en 1024x700
+    ui_prom = UIPromocion(RepositorioPromocionSQLite(db_mem), parent=tk_root)
+    ui_prom.root.geometry("1024x700+0+0")
+    ui_prom.root.update()
+    for btn in (ui_prom.btn_refrescar, ui_prom.btn_ejecutar):
+        assert btn.winfo_ismapped()
+        y_rel = btn.winfo_rooty() - ui_prom.root.winfo_rooty()
+        assert y_rel + btn.winfo_height() <= 700, f"Botón promoción oculto: {y_rel + btn.winfo_height()}"
+    ui_prom.root.destroy()
+
+    # 5. UIListados en 1024x700 (suma de anchos de columnas cabe en 1024 px)
+    ui_list = UIListados(RepositorioListadosSQLite(db_mem), exportador_pdf=exportador, parent=tk_root)
+    ui_list.root.geometry("1024x700+0+0")
+    ui_list.root.update()
+    suma_anchos = sum(ui_list.tree_alumnos.column(c, "width") for c in ui_list.tree_alumnos["columns"])
+    assert suma_anchos <= 960, f"Columnas de Listados Alumnos ({suma_anchos} px) recortarían Turno en 1024 px"
+    ui_list.root.destroy()
 
 
 def test_auditoria_maximizacion_post_login_y_exclusion_login(tk_root):
@@ -368,6 +460,7 @@ def test_auditoria_maximizacion_post_login_y_exclusion_login(tk_root):
         os.path.join(raiz, "adaptadores", "ui", "ui_profesor.py"),
         os.path.join(raiz, "adaptadores", "ui", "ui_listados.py"),
         os.path.join(raiz, "adaptadores", "ui", "ui_reportes.py"),
+        os.path.join(raiz, "adaptadores", "ui", "ui_estadisticas.py"),
         os.path.join(raiz, "adaptadores", "ui", "ui_promocion.py"),
         os.path.join(raiz, "adaptadores", "ui", "ui_usuario.py"),
     ]

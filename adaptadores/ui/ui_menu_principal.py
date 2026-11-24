@@ -16,7 +16,8 @@ from dominio.usuario import Usuario
 from dominio.permisos import (
     obtener_permisos_rol,
     MODULO_ESTUDIANTES, MODULO_ACADEMICO, MODULO_ASISTENCIA,
-    MODULO_LISTADOS, MODULO_REPORTES, MODULO_PROMOCION, MODULO_USUARIOS,
+    MODULO_LISTADOS, MODULO_REPORTES, MODULO_ESTADISTICAS,
+    MODULO_PROMOCION, MODULO_USUARIOS,
 )
 from adaptadores.ui.utilidades_ui import (
     aplicar_tema_global, centrar_ventana, maximizar_ventana,
@@ -80,6 +81,13 @@ MODULOS_CONFIG = [
         "titulo": "Reportes",
         "desc": "Estadísticas y PDF",
         "color": "#8E44AD",
+    },
+    {
+        "id": MODULO_ESTADISTICAS,
+        "icono": "📈",
+        "titulo": "Estadísticas",
+        "desc": "Indicadores y Gráficos",
+        "color": "#2E86C1",
     },
     {
         "id": MODULO_PROMOCION,
