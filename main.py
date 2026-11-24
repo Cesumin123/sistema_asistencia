@@ -1,84 +1,140 @@
+# main.py
+"""
+Punto de Entrada Oficial (Composition Root) - Sistema de Asistencia Estudiantil.
+Complejo Educativo 'Colinas del Llano' (Barinas, Venezuela).
+
+Ensambla y orquesta la arquitectura hexagonal:
+1. Inicializa la conexión SQLite y todos los repositorios.
+2. Abre la ventana de Autenticación (Login).
+3. Tras la autenticación exitosa, presenta el Menú Principal (Dashboard) con RBAC.
+4. Soporta cierre de sesión limpio regresando al Login.
+"""
+
 import tkinter as tk
 from tkinter import ttk
 
 from db_conexion import ConexionBD
+
+# Adaptadores de Persistencia
+from adaptadores.db.sqlite_usuario import SQLiteRepositorioUsuario
+from adaptadores.db.sqlite_estudiante import RepositorioEstudianteSQLite
 from adaptadores.db.sqlite_profesor import SQLiteRepositorioProfesor
 from adaptadores.db.sqlite_clase import SQLiteRepositorioClase
-from adaptadores.db.sqlite_usuario import SQLiteRepositorioUsuario 
-from adaptadores.db.sqlite_estudiante import RepositorioEstudianteSQLite
-
-# ============================================
-# NUEVO: Importaciones del Módulo de Asistencia
-# ============================================
 from adaptadores.db.sqlite_asistencia import RepositorioAsistenciaSQLite
 from adaptadores.respaldo.json_asistencia import RespaldoAsistenciaJSON
-from adaptadores.ui.ui_asistencia import GestorAsistenciaUI
+from adaptadores.db.sqlite_reportes import RepositorioReportesSQLite
+from adaptadores.db.sqlite_promocion import RepositorioPromocionSQLite
+from adaptadores.db.sqlite_listados import RepositorioListadosSQLite
 
-from adaptadores.ui.ui_profesor import GestorProfesoresUI
-from adaptadores.ui.ui_clase import GestorClasesUI
+# Adaptadores de Documentos
+from adaptadores.documentos.pdf_reportes import ExportadorPDFReportLab
+
+# Adaptadores de Interfaz de Usuario (UI)
+from adaptadores.ui.ui_login import VentanaLogin
+from adaptadores.ui.ui_menu_principal import MenuPrincipalUI
 from adaptadores.ui.ui_usuario import GestorUsuariosUI
 from adaptadores.ui.ui_estudiante import UIEstudiante
+from adaptadores.ui.ui_profesor import GestorProfesoresUI
+from adaptadores.ui.ui_clase import GestorClasesUI
+from adaptadores.ui.ui_asistencia import GestorAsistenciaUI
+from adaptadores.ui.ui_listados import UIListados
+from adaptadores.ui.ui_reportes import UIReportes
+from adaptadores.ui.ui_promocion import UIPromocion
 
-def abrir_panel_seguridad(root_principal, repositorio_usuario):
-    """Intenta abrir la ventana de seguridad."""
-    GestorUsuariosUI(root_principal, repositorio_usuario)
+# Dominio y Permisos
+from dominio.permisos import (
+    MODULO_ESTUDIANTES,
+    MODULO_ACADEMICO,
+    MODULO_ASISTENCIA,
+    MODULO_LISTADOS,
+    MODULO_REPORTES,
+    MODULO_PROMOCION,
+    MODULO_USUARIOS,
+)
 
-# ============================================
-# NUEVO: Función para orquestar la Asistencia
-# ============================================
-def abrir_modulo_asistencia(conexion):
-    """
-    Inyecta las dependencias necesarias al ControladorAsistencia 
-    a través del punto de entrada simplificado GestorAsistenciaUI.
-    """
-    repo_asistencia = RepositorioAsistenciaSQLite(conexion)
-    respaldo_emergencia = RespaldoAsistenciaJSON() # Por defecto usa 'memoria_emergencia.json'
-    
-    # Instanciamos la UI pasándole lo requerido. Internamente, 
-    # tu GestorAsistenciaUI creará el ControladorAsistencia, el Servicio y el Constructor.
-    ui_asistencia = GestorAsistenciaUI(repo_asistencia, respaldo_emergencia, conexion)
-    ui_asistencia.mostrar()
 
 def iniciar_aplicacion():
-    # 1. Base de datos y Repositorios
+    """Inicializa la infraestructura y arranca el ciclo de vida del sistema."""
+    # 1. Base de datos
     conexion = ConexionBD()
-    repositorio_prof = SQLiteRepositorioProfesor(conexion)
-    repositorio_clase = SQLiteRepositorioClase(conexion)
-    repositorio_user = SQLiteRepositorioUsuario(conexion) 
-    repositorio_estudiante = RepositorioEstudianteSQLite(conexion)
 
-    # 2. Ventana Principal
-    root = tk.Tk()
-    root.title("Sistema Escolar - Principal")
-    root.geometry("800x600")
-    
-    # Botón de Administración General arriba
-    tk.Button(root, text="⚙️ Abrir Panel de Seguridad (Usuarios)", bg="#2c3e50", fg="white", font=("Arial", 10, "bold"),
-              command=lambda: abrir_panel_seguridad(root, repositorio_user)).pack(pady=5, fill="x", padx=20)
+    # 2. Inicialización de Repositorios (Puertos y Adaptadores)
+    repo_usuario = SQLiteRepositorioUsuario(conexion)
+    repo_estudiante = RepositorioEstudianteSQLite(conexion)
+    repo_profesor = SQLiteRepositorioProfesor(conexion)
+    repo_clase = SQLiteRepositorioClase(conexion)
+    repo_asistencia = RepositorioAsistenciaSQLite(conexion)
+    respaldo_asistencia = RespaldoAsistenciaJSON()
+    repo_reportes = RepositorioReportesSQLite(conexion)
+    repo_promocion = RepositorioPromocionSQLite(conexion)
+    repo_listados = RepositorioListadosSQLite(conexion)
+    exportador_pdf = ExportadorPDFReportLab()
 
-    # Botón para el Panel de Estudiantes
-    tk.Button(root, text="🎓 Abrir Oficina de Inscripciones (Estudiantes)", bg="#2980b9", fg="white", font=("Arial", 12, "bold"),
-              command=lambda: UIEstudiante(repositorio_estudiante)).pack(pady=10, fill="x", padx=20)
+    # 3. Callbacks para la apertura de módulos
+    def abrir_academico():
+        win = tk.Toplevel()
+        win.title("Gestión Académica - Profesores y Clases")
+        win.geometry("900x600")
+        try:
+            win.state('zoomed')
+        except Exception:
+            try:
+                win.attributes('-zoomed', True)
+            except Exception:
+                pass
+        nb = ttk.Notebook(win)
+        nb.pack(fill="both", expand=True, padx=10, pady=10)
+        GestorProfesoresUI(nb, repo_profesor)
+        GestorClasesUI(nb, repo_clase)
 
-    # ============================================
-    # NUEVO: Botón para el Módulo de Asistencia
-    # ============================================
-    tk.Button(root, text="📋 Pasar Lista de Asistencia (Núcleo)", bg="#27ae60", fg="white", font=("Arial", 12, "bold"),
-              command=lambda: abrir_modulo_asistencia(conexion)).pack(pady=10, fill="x", padx=20)
+    def abrir_estudiantes():
+        UIEstudiante(repo_estudiante)
 
-    # 3. Cuaderno de pestañas Académicas (Profesores y Clases)
-    notebook = ttk.Notebook(root)
-    notebook.pack(fill="both", expand=True, padx=20, pady=10)
-    
-    # Pestaña Profesores
-    
-    GestorProfesoresUI(notebook, repositorio_prof)
-    
-    # Pestaña Clases
-    
-    GestorClasesUI(notebook, repositorio_clase)
+    def abrir_asistencia():
+        ui_asist = GestorAsistenciaUI(repo_asistencia, respaldo_asistencia, conexion)
+        ui_asist.mostrar()
 
-    root.mainloop()
+    def abrir_listados():
+        UIListados(repo_listados, exportador_pdf)
+
+    def abrir_reportes():
+        UIReportes(repo_reportes, exportador_pdf)
+
+    def abrir_promocion():
+        UIPromocion(repo_promocion)
+
+    def abrir_usuarios():
+        GestorUsuariosUI(None, repo_usuario)
+
+    callbacks_modulos = {
+        MODULO_ACADEMICO: abrir_academico,
+        MODULO_ESTUDIANTES: abrir_estudiantes,
+        MODULO_ASISTENCIA: abrir_asistencia,
+        MODULO_LISTADOS: abrir_listados,
+        MODULO_REPORTES: abrir_reportes,
+        MODULO_PROMOCION: abrir_promocion,
+        MODULO_USUARIOS: abrir_usuarios,
+    }
+
+    # 4. Orquestación del Flujo Login <-> Menú Principal
+    def mostrar_menu_principal(usuario_autenticado):
+        menu = MenuPrincipalUI(
+            usuario=usuario_autenticado,
+            callbacks=callbacks_modulos,
+            on_logout=mostrar_login
+        )
+        menu.root.mainloop()
+
+    def mostrar_login():
+        login = VentanaLogin(
+            repositorio_usuario=repo_usuario,
+            on_login_exitoso=mostrar_menu_principal
+        )
+        login.root.mainloop()
+
+    # Iniciar con la ventana de Login
+    mostrar_login()
+
 
 if __name__ == "__main__":
     iniciar_aplicacion()

@@ -1,164 +1,222 @@
 # adaptadores/ui/ui_profesor.py
+"""
+Adaptador de Interfaz de Usuario (UI) para la entidad Profesor.
+Presenta una tarjeta limpia, profesional y centrada con el logo institucional
+redimensionado proporcionalmente sin superposiciones ni fondos discordantes.
+"""
+
 import tkinter as tk
 from tkinter import ttk, messagebox
+import os
+import sys
+from PIL import Image, ImageTk
+
 from dominio.profesor import Profesor
 from adaptadores.ui.utilidades_ui import AyudaVisual, enfocar_siguiente
-from PIL import Image, ImageTk
+
+
+def resolver_ruta_logo() -> str | None:
+    """Busca el archivo de imagen institucional en la raíz o empaquetado."""
+    nombres = ["LOGOLICEO.png", "logo_colegio.png", "logo.png"]
+    for n in nombres:
+        if os.path.exists(n):
+            return n
+
+    try:
+        base_meipass = sys._MEIPASS  # type: ignore
+        for n in nombres:
+            p = os.path.join(base_meipass, n)
+            if os.path.exists(p):
+                return p
+    except Exception:
+        pass
+
+    dir_actual = os.path.abspath(os.path.dirname(__file__))
+    dir_raiz = os.path.abspath(os.path.join(dir_actual, "..", ".."))
+    for n in nombres:
+        p = os.path.join(dir_raiz, n)
+        if os.path.exists(p):
+            return p
+
+    return None
+
 
 class GestorProfesoresUI:
     """
-    Adaptador de Interfaz de Usuario (UI) para la entidad Profesor.
-    
-    Esta clase actúa como un puente entre el usuario y la lógica de negocio,
-    implementando la capa de presentación mediante la librería Tkinter.
-    Se encarga de la captura de datos, validación visual y la interacción
-    con el repositorio de persistencia.
+    Adaptador de Interfaz de Usuario para el registro y gestión de Profesores.
     """
 
-    def __init__(self, parent_notebook, repositorio_profesor):
-        """
-        Inicializa la interfaz del gestor de profesores.
-
-        Args:
-            parent_notebook (ttk.Notebook): El contenedor de pestañas principal de la aplicación.
-            repositorio_profesor (RepositorioProfesor): Adaptador de persistencia inyectado 
-                para realizar operaciones sobre la base de datos.
-        """
+    def __init__(self, parent_notebook: ttk.Notebook, repositorio_profesor):
         self.notebook = parent_notebook
         self.repositorio = repositorio_profesor
-        
-        # Construcción de los elementos visuales
+        self.img_logo_tk = None  # Mantener referencia viva de la imagen
+
+        # Construcción visual
         self.crear_tab()
-        
-        # Maximiza la ventana principal para asegurar la correcta visualización del fondo
-        # --- MAXIMIZAR VENTANA MULTIPLATAFORMA ---
+
+        # Maximizado multiplataforma seguro
         try:
-            self.notebook.master.state('zoomed') # Intento para Windows
-        except tk.TclError:
-            self.notebook.master.attributes('-zoomed', True) # Intento para Linux/
+            self.notebook.master.state('zoomed')
+        except Exception:
+            try:
+                self.notebook.master.attributes('-zoomed', True)
+            except Exception:
+                pass
 
     def convertir_mayus(self, event):
-        """
-        Transforma dinámicamente el contenido de un widget de entrada a letras mayúsculas.
-
-        Args:
-            event (tk.Event): Evento de teclado que dispara la función.
-        """
+        """Convierte automáticamente a mayúsculas mientras el usuario escribe."""
         widget = event.widget
         texto = widget.get()
         if texto != texto.upper():
-            # Guarda la posición actual del cursor para evitar que salte al inicio
             pos = widget.index(tk.INSERT)
             widget.delete(0, tk.END)
             widget.insert(0, texto.upper())
-            # Restaura la posición del cursor después de la modificación
             widget.icursor(pos)
 
     def crear_tab(self):
-        """
-        Configura y ensambla todos los componentes visuales de la pestaña de registro.
-        
-        Incluye la carga de recursos gráficos, definición de campos de entrada,
-        configuración de eventos (binds) y herramientas de ayuda visual (tooltips).
-        """
-        # Creación del marco contenedor de la pestaña
-        tab = tk.Frame(self.notebook, bg="#e8f8f5") 
-
-        # --- GESTIÓN DEL FONDO GRÁFICO ---
-        try:
-            # Carga y redimensionamiento de la imagen corporativa
-            imagen_original = Image.open("LOGOLICEO.png")
-            imagen_redimensionada = imagen_original.resize((600, 400))
-            self.img_fondo_tk = ImageTk.PhotoImage(imagen_redimensionada)
-            
-            # Label posicionado de forma absoluta para actuar como fondo
-            lbl_fondo = tk.Label(tab, image=self.img_fondo_tk, bd=0)
-            lbl_fondo.place(x=-250, y=50, relwidth=1, relheight=1)
-        except Exception as e:
-            # En caso de error de carga, se registra en consola pero no interrumpe el flujo
-            print(f"Error al cargar recurso gráfico: {e}")
-
-        # Agrega la pestaña al cuaderno principal
+        """Construye la pestaña de registro con una tarjeta blanca centrada y paleta uniforme."""
+        # Pestaña con fondo claro neutro
+        tab = tk.Frame(self.notebook, bg="#f4f6f7")
         self.notebook.add(tab, text="  👨‍🏫  REGISTRAR PROFESOR  ")
-        
-        # Marco central para organizar los controles de entrada
-        frame = tk.Frame(tab, bg="#e8f8f5")
-        frame.pack(pady=150, padx=300 )
-        
-        
-        # --- SECCIÓN: CÉDULA DE IDENTIDAD ---
-        tk.Label(frame, text="Cédula de Identidad:", bg="#ffffff", font=("Arial", 10)).pack()
-        f_ced = tk.Frame(frame, bg="#e8f8f5")
-        f_ced.pack()
-        
-        # Selector de nacionalidad (Prefijo de cédula)
+
+        # Contenedor central expandido para centrado vertical y horizontal
+        frame_centro = tk.Frame(tab, bg="#f4f6f7")
+        frame_centro.pack(expand=True, fill="both", pady=30, padx=20)
+
+        # Tarjeta blanca central bien delimitada
+        tarjeta = tk.Frame(frame_centro, bg="white", padx=40, pady=30, relief="solid", bd=1)
+        tarjeta.place(relx=0.5, rely=0.5, anchor="center")
+
+        # -------------------------------------------------------------
+        # ENCABEZADO INSTITUCIONAL: LOGO REDIMENSIONADO Y TÍTULOS
+        # -------------------------------------------------------------
+        f_header = tk.Frame(tarjeta, bg="white")
+        f_header.pack(fill="x", pady=(0, 20))
+
+        # Carga del logo de forma proporcional (100x100 px) sin recortes
+        ruta_logo = resolver_ruta_logo()
+        if ruta_logo:
+            try:
+                img_orig = Image.open(ruta_logo)
+                img_redim = img_orig.resize((100, 100), Image.Resampling.LANCZOS)
+                self.img_logo_tk = ImageTk.PhotoImage(img_redim)
+                lbl_logo = tk.Label(f_header, image=self.img_logo_tk, bg="white")
+                lbl_logo.pack(side="left", padx=(0, 20))
+            except Exception as e:
+                print(f"Aviso: No se pudo cargar el logo del liceo: {e}")
+
+        f_titulos = tk.Frame(f_header, bg="white")
+        f_titulos.pack(side="left", fill="y", expand=True)
+
+        tk.Label(
+            f_titulos,
+            text="REGISTRO DE PROFESORES",
+            font=("Arial", 16, "bold"),
+            bg="white",
+            fg="#2c3e50"
+        ).pack(anchor="w")
+
+        tk.Label(
+            f_titulos,
+            text="Complejo Educativo 'Colinas del Llano'",
+            font=("Arial", 10, "italic"),
+            bg="white",
+            fg="#7f8c8d"
+        ).pack(anchor="w", pady=(2, 0))
+
+        tk.Label(
+            f_titulos,
+            text="Ingrese la cédula y nombre completo del docente para habilitar asignaciones.",
+            font=("Arial", 9),
+            bg="white",
+            fg="#95a5a6"
+        ).pack(anchor="w", pady=(4, 0))
+
+        # Línea separadora sutil
+        sep = tk.Frame(tarjeta, bg="#e5e7e9", height=1)
+        sep.pack(fill="x", pady=(5, 20))
+
+        # -------------------------------------------------------------
+        # FORMULARIO DE ENTRADA
+        # -------------------------------------------------------------
+        f_form = tk.Frame(tarjeta, bg="white")
+        f_form.pack(fill="x")
+
+        # 1. Cédula de Identidad
+        tk.Label(
+            f_form,
+            text="Cédula de Identidad:",
+            bg="white",
+            fg="#34495e",
+            font=("Arial", 10, "bold")
+        ).pack(anchor="w", pady=(0, 4))
+
+        f_ced = tk.Frame(f_form, bg="white")
+        f_ced.pack(anchor="w", pady=(0, 15))
+
         self.combo_nac_prof = ttk.Combobox(f_ced, values=["V", "E", "P"], width=3, state="readonly")
         self.combo_nac_prof.pack(side="left")
         self.combo_nac_prof.current(0)
         AyudaVisual(self.combo_nac_prof, "Seleccione la nacionalidad del profesor.")
-        #enfocamos el siguiente campo al presionar enter
-        self.combo_nac_prof.bind("<Return>", enfocar_siguiente) 
+        self.combo_nac_prof.bind("<Return>", enfocar_siguiente)
 
-        # Campo numérico para la cédula
-        self.entry_ced_prof = tk.Entry(f_ced, width=15)
-        self.entry_ced_prof.pack(side="left", padx=5)
+        self.entry_ced_prof = tk.Entry(f_ced, width=18, font=("Arial", 10))
+        self.entry_ced_prof.pack(side="left", padx=(8, 0))
         self.entry_ced_prof.bind("<Return>", enfocar_siguiente)
-        AyudaVisual(self.entry_ced_prof, "Ingrese solo números. Ej: 12345678")
-        
-        # --- SECCIÓN: NOMBRE DEL PROFESOR ---
-        tk.Label(frame, text="Nombre Completo:", bg="#e8f8f5", font=("Arial", 10)).pack(pady=(15, 0))
-        
-        self.entry_nom_prof = tk.Entry(frame, width=35)
-        self.entry_nom_prof.pack()
-        # Vinculación de eventos para normalización automática a mayúsculas
+        self.entry_ced_prof.focus()
+        AyudaVisual(self.entry_ced_prof, "Ingrese solo números sin puntos. Ej: 12345678")
+
+        # 2. Nombre Completo
+        tk.Label(
+            f_form,
+            text="Nombre Completo del Profesor:",
+            bg="white",
+            fg="#34495e",
+            font=("Arial", 10, "bold")
+        ).pack(anchor="w", pady=(0, 4))
+
+        self.entry_nom_prof = tk.Entry(f_form, width=38, font=("Arial", 10))
+        self.entry_nom_prof.pack(anchor="w", pady=(0, 25))
         self.entry_nom_prof.bind("<KeyRelease>", self.convertir_mayus)
-        self.entry_nom_prof.bind("<Return>", enfocar_siguiente)
-        AyudaVisual(self.entry_nom_prof, "Ingrese el nombre completo del profesor.")
-        
-        # --- SECCIÓN: ACCIÓN DE GUARDADO ---
-        btn_guardar = tk.Button(frame, text="GUARDAR PROFESOR", bg="#16a085", fg="white",
-                   font=("Arial", 10, "bold"), command=self.guardar_click)
-        btn_guardar.pack(pady=25)
-        btn_guardar.bind("<Return>", self.guardar_click)
-        AyudaVisual(btn_guardar, "Haz clic para guardar el profesor en la base de datos.")
+        self.entry_nom_prof.bind("<Return>", lambda e: self.guardar_click())
+        AyudaVisual(self.entry_nom_prof, "Nombre y apellido del docente.")
+
+        # -------------------------------------------------------------
+        # BOTÓN DE ACCIÓN
+        # -------------------------------------------------------------
+        btn_guardar = tk.Button(
+            tarjeta,
+            text="💾 GUARDAR PROFESOR",
+            bg="#27ae60",
+            fg="white",
+            font=("Arial", 10, "bold"),
+            cursor="hand2",
+            padx=20,
+            pady=8,
+            relief="flat",
+            command=self.guardar_click
+        )
+        btn_guardar.pack(anchor="w")
+        AyudaVisual(btn_guardar, "Haz clic para registrar el profesor en el sistema.")
 
     def guardar_click(self, event=None):
-        """
-        Procesa la recolección de datos, instanciación del dominio y persistencia.
-
-        Captura la información de los widgets, formatea los datos, solicita la 
-        validación de reglas de negocio al dominio y finalmente delega el 
-        almacenamiento al repositorio.
-
-        Args:
-            event (tk.Event, opcional): Captura el evento de teclado si se presiona 'Enter'.
-        """
-        # Extracción y limpieza básica de entradas
+        """Valida y guarda el profesor en la persistencia."""
         nombre = self.entry_nom_prof.get().strip().upper()
         ced_num = self.entry_ced_prof.get().strip()
         cedula = f"{self.combo_nac_prof.get()}-{ced_num}"
 
         try:
-            # Instanciación del objeto de Dominio (Entidad Pura)
             nuevo_profesor = Profesor(cedula=cedula, nombre_completo=nombre)
-            
-            # Validación de reglas de negocio (Lógica interna del dominio)
             nuevo_profesor.validar()
-            
-            # Persistencia a través del adaptador de infraestructura (Inyectado)
+
             self.repositorio.guardar(nuevo_profesor)
-            
-            # Retroalimentación al usuario
-            messagebox.showinfo("Éxito", f"Profesor {nombre} registrado correctamente.")
-            
-            # Limpieza de los campos del formulario
+            messagebox.showinfo("Éxito", f"Profesor '{nombre}' registrado correctamente.")
+
             self.entry_ced_prof.delete(0, tk.END)
             self.entry_nom_prof.delete(0, tk.END)
             self.entry_ced_prof.focus()
 
         except ValueError as e:
-            # Captura errores de validación de reglas de negocio
             messagebox.showwarning("Dato Inválido", str(e))
         except Exception as e:
-            # Captura errores técnicos (ej. pérdida de conexión a BD)
             messagebox.showerror("Error de Sistema", f"No se pudo completar la operación: {e}")
