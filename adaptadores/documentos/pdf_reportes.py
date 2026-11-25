@@ -17,6 +17,7 @@ from reportlab.lib import colors
 
 from puertos.repositorio_reportes import PuertoExportadorPDF
 from adaptadores.documentos.gestor_fotos import GestorFotos
+from rutas_app import obtener_ruta_recurso, obtener_ruta_dato
 
 
 class ExportadorPDFReportLab(PuertoExportadorPDF):
@@ -33,6 +34,24 @@ class ExportadorPDFReportLab(PuertoExportadorPDF):
         """Dibuja el membrete oficial institucional en cada página."""
         canvas.saveState()
         ancho, alto = letter
+
+        # Logo institucional sutil en el membrete (sin solapar encabezados ni fecha)
+        for nombre_logo in ("LOGOLICEO.png", "logo_colegio.png", "logo.png"):
+            ruta_logo = obtener_ruta_recurso(nombre_logo)
+            if os.path.exists(ruta_logo):
+                try:
+                    canvas.drawImage(
+                        ruta_logo,
+                        40,
+                        alto - 94,
+                        width=36,
+                        height=28,
+                        preserveAspectRatio=True,
+                        mask="auto",
+                    )
+                except Exception:
+                    pass
+                break
 
         # 1. Encabezado a tres columnas
         canvas.setFont("Helvetica-Bold", 9)
@@ -179,7 +198,7 @@ class ExportadorPDFReportLab(PuertoExportadorPDF):
         """
         if not ruta_salida:
             ced = getattr(profesor, "cedula", "docente").replace("-", "_").replace(".", "")
-            ruta_salida = f"reportes/Ficha_Docente_{ced}.pdf"
+            ruta_salida = obtener_ruta_dato(f"reportes/Ficha_Docente_{ced}.pdf")
 
         dir_salida = os.path.dirname(ruta_salida)
         if dir_salida and not os.path.exists(dir_salida):
@@ -294,7 +313,7 @@ class ExportadorPDFReportLab(PuertoExportadorPDF):
         """
         if not ruta_salida:
             ced = getattr(estudiante, "cedula", "estudiante").replace("-", "_").replace(".", "")
-            ruta_salida = f"reportes/Ficha_Estudiante_{ced}.pdf"
+            ruta_salida = obtener_ruta_dato(f"reportes/Ficha_Estudiante_{ced}.pdf")
 
         dir_salida = os.path.dirname(ruta_salida)
         if dir_salida and not os.path.exists(dir_salida):

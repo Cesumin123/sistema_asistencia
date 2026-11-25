@@ -2,5 +2,11 @@
 __pycache__/
 *.pyc
 .pytest_cache/
-memoria_emergencia.json
+build/
+dist/
+empaquetado/icono_colegio.ico
+*.db
+*.db-wal
+*.db-shm
 fotos/
+memoria_emergencia.json

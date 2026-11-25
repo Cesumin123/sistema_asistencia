@@ -8,9 +8,9 @@ tabla de profesores registrados y exportación de Ficha Técnica Docente en PDF.
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import os
-import sys
 from PIL import Image, ImageTk
 
+from rutas_app import obtener_ruta_recurso
 from dominio.profesor import Profesor
 from adaptadores.ui.utilidades_ui import (
     COLOR_FONDO_APP, COLOR_TARJETA, COLOR_PRIMARIO, COLOR_ACENTO,
@@ -28,24 +28,10 @@ from adaptadores.ui.utilidades_ui import (
 
 def resolver_ruta_logo() -> str | None:
     """Busca el archivo de imagen institucional en la raíz o empaquetado."""
-    nombres = ["LOGOLICEO.png", "logo_colegio.png", "logo.png"]
-    for n in nombres:
-        if os.path.exists(n):
-            return n
-    try:
-        base_meipass = sys._MEIPASS  # type: ignore
-        for n in nombres:
-            p = os.path.join(base_meipass, n)
-            if os.path.exists(p):
-                return p
-    except Exception:
-        pass
-    dir_actual = os.path.abspath(os.path.dirname(__file__))
-    dir_raiz = os.path.abspath(os.path.join(dir_actual, "..", ".."))
-    for n in nombres:
-        p = os.path.join(dir_raiz, n)
-        if os.path.exists(p):
-            return p
+    for nombre in ("LOGOLICEO.png", "logo_colegio.png", "logo.png"):
+        ruta = obtener_ruta_recurso(nombre)
+        if os.path.exists(ruta):
+            return ruta
     return None
 
 

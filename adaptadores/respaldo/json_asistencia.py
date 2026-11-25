@@ -5,13 +5,15 @@ from typing import Optional
 # Importamos el dominio y el puerto de emergencia
 from dominio.asistencia import PlanillaAsistencia, RegistroAsistencia, EstadoAsistencia
 from puertos.repositorio_asistencia import PuertoRespaldoEmergencia
+from rutas_app import obtener_ruta_dato
 
 class RespaldoAsistenciaJSON(PuertoRespaldoEmergencia):
-    def __init__(self, ruta_archivo: str = "memoria_emergencia.json"):
+    def __init__(self, ruta_archivo: Optional[str] = None):
         """
-        Guardamos la ruta por defecto, pero permitimos cambiarla si es necesario.
+        Guardamos la ruta por defecto de forma portable junto al ejecutable,
+        permitiendo pasar una ruta personalizada en pruebas.
         """
-        self.ruta_archivo = ruta_archivo
+        self.ruta_archivo = ruta_archivo if ruta_archivo is not None else obtener_ruta_dato("memoria_emergencia.json")
 
     def guardar_respaldo(self, planilla: PlanillaAsistencia) -> None:
         # Asegurar directorio si es ruta personalizada

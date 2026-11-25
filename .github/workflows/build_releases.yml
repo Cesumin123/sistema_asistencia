@@ -1,0 +1,93 @@
+name: Compilar Releases Windows y Linux Mint
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/integracion-agente
+      - main
+
+jobs:
+  build-windows:
+    name: Build Windows 10/11 (Portable USB + Inno Setup)
+    runs-on: windows-latest
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias y PyInstaller
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest pyinstaller
+
+      - name: Ejecutar pruebas unitarias y guardrails
+        run: pytest -v
+
+      - name: Generar icono institucional (.ico)
+        run: python empaquetado/generar_icono.py
+
+      - name: Compilar con PyInstaller (--onedir)
+        run: pyinstaller --noconfirm --clean empaquetado/windows.spec
+
+      - name: Empaquetar ZIP Portable USB
+        shell: powershell
+        run: |
+          if (Test-Path "dist\ColinasDelLlano_Windows_Portable.zip") { Remove-Item "dist\ColinasDelLlano_Windows_Portable.zip" -Force }
+          Compress-Archive -Path "dist\ColinasDelLlano_Windows" -DestinationPath "dist\ColinasDelLlano_Windows_Portable.zip" -Force
+
+      - name: Compilar Instalador Inno Setup 6
+        run: iscc empaquetado/instalar_windows.iss
+
+      - name: Subir Artifact Portable USB Windows
+        uses: actions/upload-artifact@v4
+        with:
+          name: ColinasDelLlano-Windows-Portable-USB
+          path: dist/ColinasDelLlano_Windows_Portable.zip
+
+      - name: Subir Artifact Instalador Windows
+        uses: actions/upload-artifact@v4
+        with:
+          name: ColinasDelLlano-Windows-Instalador
+          path: dist/Instalar_ColinasDelLlano_Windows.exe
+
+  build-linux-mint:
+    name: Build Linux Mint 21.x / 22.x (Ubuntu 22.04 glibc 2.35)
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar python3-tk y xvfb
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk xvfb
+
+      - name: Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Crear .venv e instalar dependencias
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install --upgrade pip
+          .venv/bin/pip install -r requirements.txt pytest pyinstaller
+
+      - name: Ejecutar pruebas unitarias y guardrails con Xvfb
+        run: xvfb-run -a .venv/bin/pytest -v
+
+      - name: Construir paquete Linux Mint (--onedir + .tar.gz)
+        run: |
+          chmod +x construir_linux.sh empaquetado/Instalar_en_Mint.sh
+          ./construir_linux.sh
+
+      - name: Subir Artifact Linux Mint
+        uses: actions/upload-artifact@v4
+        with:
+          name: ColinasDelLlano-LinuxMint
+          path: dist/ColinasDelLlano_LinuxMint.tar.gz

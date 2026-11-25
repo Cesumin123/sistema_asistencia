@@ -14,6 +14,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from db_conexion import ConexionBD
+from rutas_app import obtener_ruta_dato
 
 # Adaptadores de Persistencia
 from adaptadores.db.sqlite_usuario import SQLiteRepositorioUsuario
@@ -63,8 +64,10 @@ from dominio.permisos import (
 
 def iniciar_aplicacion():
     """Inicializa la infraestructura y arranca el ciclo de vida del sistema."""
-    # 1. Base de datos
+    # 1. Base de datos (inicializa/migra esquema junto al ejecutable desde el arranque)
     conexion = ConexionBD()
+    if conexion.conectar() is not None:
+        conexion.cerrar()
 
     # 2. Inicialización de Repositorios (Puertos y Adaptadores)
     repo_usuario = SQLiteRepositorioUsuario(conexion)
@@ -72,7 +75,7 @@ def iniciar_aplicacion():
     repo_profesor = SQLiteRepositorioProfesor(conexion)
     repo_clase = SQLiteRepositorioClase(conexion)
     repo_asistencia = RepositorioAsistenciaSQLite(conexion)
-    respaldo_asistencia = RespaldoAsistenciaJSON()
+    respaldo_asistencia = RespaldoAsistenciaJSON(obtener_ruta_dato("memoria_emergencia.json"))
     repo_reportes = RepositorioReportesSQLite(conexion)
     repo_estadisticas = RepositorioEstadisticasSQLite(conexion)
     repo_promocion = RepositorioPromocionSQLite(conexion)

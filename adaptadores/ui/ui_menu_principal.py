@@ -8,10 +8,10 @@ usuario/rol activo, tarjetas de módulos con RBAC y botón de Cerrar Sesión.
 import tkinter as tk
 from tkinter import ttk, messagebox
 import os
-import sys
 from typing import Dict, Callable, Optional
 from PIL import Image, ImageTk
 
+from rutas_app import obtener_ruta_recurso
 from dominio.usuario import Usuario
 from dominio.permisos import (
     obtener_permisos_rol,
@@ -35,14 +35,7 @@ from adaptadores.ui.utilidades_ui import (
 
 def resolver_ruta_recurso(nombre_archivo: str) -> str:
     """Resuelve la ruta absoluta del recurso compatible con desarrollo y PyInstaller."""
-    try:
-        base = sys._MEIPASS  # type: ignore
-    except Exception:
-        base = os.path.abspath(os.path.dirname(__file__))
-        raiz = os.path.abspath(os.path.join(base, "..", ".."))
-        if os.path.exists(os.path.join(raiz, nombre_archivo)):
-            return os.path.join(raiz, nombre_archivo)
-    return os.path.join(base, nombre_archivo)
+    return obtener_ruta_recurso(nombre_archivo)
 
 
 # Configuración de módulos para el dashboard
@@ -268,7 +261,7 @@ class MenuPrincipalUI:
 
     def _cargar_logo_defensivo(self, contenedor: tk.Frame):
         """Carga defensiva de la imagen institucional."""
-        nombres_posibles = ["logo_colegio.png", "LOGOLICEO.png", "logo.png"]
+        nombres_posibles = ["LOGOLICEO.png", "logo_colegio.png", "logo.png"]
         ruta_encontrada = None
         for nom in nombres_posibles:
             ruta = resolver_ruta_recurso(nom)

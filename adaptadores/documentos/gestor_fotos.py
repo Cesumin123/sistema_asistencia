@@ -6,10 +6,11 @@ para garantizar portabilidad USB (RNF-07), sin usar BLOBs en SQLite ni rutas abs
 """
 
 import os
-import sys
 import re
 from typing import Optional, Tuple, Any
 from PIL import Image, ImageOps, ImageTk
+
+from rutas_app import obtener_directorio_datos
 
 
 class GestorFotos:
@@ -22,12 +23,7 @@ class GestorFotos:
         if directorio_base is not None:
             self.directorio_base = os.path.abspath(directorio_base)
         else:
-            if getattr(sys, 'frozen', False):
-                self.directorio_base = os.path.dirname(sys.executable)
-            else:
-                dir_actual = os.path.dirname(os.path.abspath(__file__))
-                # Raíz del proyecto (dos niveles arriba de adaptadores/documentos)
-                self.directorio_base = os.path.abspath(os.path.join(dir_actual, "..", ".."))
+            self.directorio_base = obtener_directorio_datos()
 
     @staticmethod
     def sanitizar_cedula(cedula: str) -> str:

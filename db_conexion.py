@@ -1,11 +1,12 @@
 #importante: Este archivo es parte de la capa de infraestructura y no debe ser modificado por los usuarios finales.
 #importación de módulos necesarios para la conexión a la base de datos y manejo de rutas
 
-import os      
-import sys
-import sqlite3 
+import os
+import sqlite3
 import hashlib
 import secrets
+
+from rutas_app import obtener_ruta_dato, obtener_ruta_recurso  # noqa: F401
 
 class ConexionBD:
     """
@@ -17,13 +18,7 @@ class ConexionBD:
         if ruta_db is not None:
             self.ruta_db = ruta_db
         else:
-            # Detectar si es .exe o .py para buscar la ruta correcta
-            if getattr(sys, 'frozen', False):
-                carpeta_actual = os.path.dirname(sys.executable)
-            else:
-                carpeta_actual = os.path.dirname(os.path.abspath(__file__))
-            
-            self.ruta_db = os.path.join(carpeta_actual, "sistema_escolar.db")
+            self.ruta_db = obtener_ruta_dato("sistema_escolar.db")
         self.conexion = None
 
     def conectar(self):
