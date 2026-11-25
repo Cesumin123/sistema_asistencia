@@ -197,10 +197,12 @@ class UIEstadisticas:
         card_der.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
         tk.Label(
             card_der,
-            text="Distribución de Asistencia (P / A / J) y Matrícula por Género",
+            text="Asistencia (P / A / J) y Matrícula por Género",
             font=FUENTE_CUERPO_BOLD,
             fg=COLOR_PRIMARIO,
             bg=COLOR_TARJETA,
+            wraplength=420,
+            justify="left",
             anchor="w",
         ).pack(fill="x", pady=(0, 4))
 

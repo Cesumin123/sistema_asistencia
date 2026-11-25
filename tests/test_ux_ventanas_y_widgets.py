@@ -498,3 +498,105 @@ def test_auditoria_maximizacion_post_login_y_exclusion_login(tk_root):
     win_login.update_idletasks()
     assert win_login.resizable() == (False, False)
     win_login.destroy()
+
+
+def test_qa_legibilidad_textos_y_botones_gestion_docentes_y_modulos(tk_root, db_mem, tmp_path):
+    """
+    Auditoría automatizada anti-regresión en 1024x700 (margen para DPI Windows):
+    1. Monta GestorProfesoresUI y GestorClasesUI en Notebook dentro de 1024x700 con barra volver.
+    2. Mide con tkinter.font.Font el ancho de texto de cada botón mapeado y exige
+       winfo_width() >= ancho_texto_px + 12.
+    3. Verifica que ningún botón ni etiqueta clave de ui_profesor/ui_clase se salga del contenedor
+       ni tenga winfo_width() < winfo_reqwidth().
+    4. Verifica coherencia de columnas de tree_prof y visibilidad en PlanillaUI y UIEstadisticas.
+    """
+    from tkinter import font as tkfont
+    from adaptadores.ui.ui_clase import GestorClasesUI
+    from adaptadores.ui.ui_asistencia import ControladorAsistencia, PlanillaUI
+    from adaptadores.ui.ui_estadisticas import UIEstadisticas
+    from adaptadores.db.sqlite_asistencia import RepositorioAsistenciaSQLite
+    from adaptadores.db.sqlite_estadisticas import RepositorioEstadisticasSQLite
+    from adaptadores.respaldo.json_asistencia import RespaldoAsistenciaJSON
+
+    exportador = ExportadorPDFReportLab()
+    gestor_fotos = GestorFotos(directorio_base=str(tmp_path))
+
+    def _verificar_botones_y_limites(win_objetivo, nombre_modulo):
+        wx0, wy0 = win_objetivo.winfo_rootx(), win_objetivo.winfo_rooty()
+        ww, wh = win_objetivo.winfo_width(), win_objetivo.winfo_height()
+
+        def _recorrer(w):
+            for ch in w.winfo_children():
+                if ch.winfo_ismapped():
+                    cls = ch.winfo_class()
+                    x = ch.winfo_rootx() - wx0
+                    y = ch.winfo_rooty() - wy0
+                    cw, chh = ch.winfo_width(), ch.winfo_height()
+                    assert x >= 0 and y >= 0, f"{nombre_modulo}: {cls} fuera por izq/arriba ({x},{y})"
+                    assert x + cw <= ww + 1 and y + chh <= wh + 1, (
+                        f"{nombre_modulo}: {cls} excede {ww}x{wh} -> ({x}+{cw}, {y}+{chh})"
+                    )
+                    if cls in ("Button", "TButton"):
+                        txt = ch.cget("text")
+                        f = tkfont.Font(font=ch.cget("font"))
+                        tw = f.measure(txt)
+                        assert cw >= tw + 12, (
+                            f"{nombre_modulo}: botón {txt!r} sin holgura suficiente (w={cw}, tw={tw})"
+                        )
+                _recorrer(ch)
+
+        _recorrer(win_objetivo)
+
+    # 1. Gestión Académica (Profesores y Clases) en 1024x700
+    w_acad = tk.Toplevel(tk_root)
+    agregar_barra_superior_volver(w_acad, tk_root, "Módulo Académico")
+    nb = ttk.Notebook(w_acad)
+    nb.pack(fill="both", expand=True, padx=10, pady=10)
+    ui_prof = GestorProfesoresUI(
+        nb, SQLiteRepositorioProfesor(db_mem), exportador, gestor_fotos, SQLiteRepositorioClase(db_mem)
+    )
+    ui_clase = GestorClasesUI(nb, SQLiteRepositorioClase(db_mem))
+    w_acad.geometry("1024x700+0+0")
+    w_acad.update()
+
+    assert w_acad.winfo_reqwidth() <= 1024, f"Académico reqwidth={w_acad.winfo_reqwidth()} > 1024"
+    _verificar_botones_y_limites(w_acad, "GestorProfesoresUI")
+    for b in (ui_prof.btn_cargar_foto, ui_prof.btn_quitar_foto,
+              ui_prof.btn_guardar, ui_prof.btn_actualizar, ui_prof.btn_ficha, ui_prof.btn_limpiar):
+        assert b.winfo_width() >= b.winfo_reqwidth()
+    col_sum = sum(ui_prof.tree_prof.column(c, "width") for c in ui_prof.tree_prof["columns"])
+    assert col_sum <= ui_prof.tree_prof.winfo_width() + 2
+
+    # Cambiar a pestaña Asignar Materias (ui_clase.py)
+    nb.select(1)
+    w_acad.update()
+    _verificar_botones_y_limites(w_acad, "GestorClasesUI")
+    assert ui_clase.btn_inscribir.winfo_width() >= ui_clase.btn_inscribir.winfo_reqwidth()
+    w_acad.destroy()
+
+    # 2. PlanillaUI (Asistencia) en 1024x700: verificar que todos los botones inferiores caben
+    ctrl = ControladorAsistencia(
+        RepositorioAsistenciaSQLite(db_mem),
+        RespaldoAsistenciaJSON(ruta_archivo=str(tmp_path / "em.json")),
+        SQLiteRepositorioClase(db_mem),
+        parent=tk_root,
+    )
+    from dominio.asistencia import PlanillaAsistencia, RegistroAsistencia
+    planilla = PlanillaAsistencia(id_clase=1, fecha="2026-11-24", registros=[RegistroAsistencia("V-1")])
+    pl = PlanillaUI(ctrl, planilla, {"V-1": "ALUMNO TEST"}, "MATEMATICAS", parent=tk_root)
+    pl.win.geometry("1024x700+0+0")
+    pl.win.update()
+    _verificar_botones_y_limites(pl.win, "PlanillaUI")
+    for b in (pl.btn_presente, pl.btn_ausente, pl.btn_justificada, pl.btn_guardar, pl.btn_cerrar):
+        assert b.winfo_ismapped()
+        assert b.winfo_height() >= 28
+    pl.win.destroy()
+
+    # 3. UIEstadisticas en 1024x700: botones de cabecera y etiquetas sin recorte
+    ui_stats = UIEstadisticas(
+        RepositorioEstadisticasSQLite(db_mem), parent=tk_root, exportador_pdf=exportador
+    )
+    ui_stats.root.geometry("1024x700+0+0")
+    ui_stats.root.update()
+    _verificar_botones_y_limites(ui_stats.root, "UIEstadisticas")
+    ui_stats.root.destroy()

@@ -56,7 +56,7 @@ COLOR_PELIGRO_HOVER = "#A93226"       # Hover del peligro
 COLOR_ADVERTENCIA = "#F39C12"         # Ámbar (advertencias)
 COLOR_ADVERTENCIA_HOVER = "#D68910"   # Hover de advertencia
 COLOR_TEXTO_PRINCIPAL = "#2C3E50"     # Texto principal oscuro
-COLOR_TEXTO_SECUNDARIO = "#7F8C8D"    # Texto auxiliar / placeholder
+COLOR_TEXTO_SECUNDARIO = "#566573"    # Texto auxiliar / placeholder (contraste AA >= 5:1)
 COLOR_TEXTO_CLARO = "#FFFFFF"         # Texto sobre fondos oscuros
 COLOR_SEPARADOR = "#E5E7E9"           # Líneas separadoras
 COLOR_SIDEBAR = "#2C3E50"             # Panel lateral institucional
@@ -344,7 +344,7 @@ def agregar_barra_superior_volver(ventana: tk.Toplevel, padre: Optional[tk.Misc]
         relief="flat",
         bd=0,
         padx=12,
-        pady=4,
+        pady=5,
         cursor="hand2",
         command=volver,
     )

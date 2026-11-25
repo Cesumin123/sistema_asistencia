@@ -108,9 +108,9 @@ class GestorProfesoresUI:
         tab = tk.Frame(self.notebook, bg=COLOR_FONDO_APP)
         self.notebook.add(tab, text="  👨‍🏫  GESTIÓN DE PROFESORES  ")
 
-        # Contenedor principal con grid de 2 columnas
+        # Contenedor principal con grid de 2 columnas (calibrado para <= 960 px en 1024x700)
         contenedor = tk.Frame(tab, bg=COLOR_FONDO_APP)
-        contenedor.pack(fill="both", expand=True, padx=14, pady=10)
+        contenedor.pack(fill="both", expand=True, padx=10, pady=8)
         contenedor.columnconfigure(0, weight=5)
         contenedor.columnconfigure(1, weight=5)
         contenedor.rowconfigure(0, weight=1)
@@ -118,8 +118,8 @@ class GestorProfesoresUI:
         # ══════════════════════════════════════════════════════════════════
         # COLUMNA IZQUIERDA: TARJETA DE FORMULARIO Y FOTO
         # ══════════════════════════════════════════════════════════════════
-        tarjeta_form = crear_tarjeta(contenedor, padx=18, pady=12)
-        tarjeta_form.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
+        tarjeta_form = crear_tarjeta(contenedor, padx=14, pady=10)
+        tarjeta_form.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
 
         # Encabezado con Logo y Título
         f_header = tk.Frame(tarjeta_form, bg=COLOR_TARJETA)
@@ -134,7 +134,7 @@ class GestorProfesoresUI:
                 nuevo_h = int(img_orig.height * ratio)
                 img_redim = img_orig.resize((nuevo_w, nuevo_h), Image.Resampling.LANCZOS)
                 self.img_logo_tk = ImageTk.PhotoImage(img_redim)
-                tk.Label(f_header, image=self.img_logo_tk, bg=COLOR_TARJETA).pack(side="left", padx=(0, 12))
+                tk.Label(f_header, image=self.img_logo_tk, bg=COLOR_TARJETA).pack(side="left", padx=(0, 10))
             except Exception:
                 pass
 
@@ -149,11 +149,11 @@ class GestorProfesoresUI:
         f_cuerpo = tk.Frame(tarjeta_form, bg=COLOR_TARJETA)
         f_cuerpo.pack(fill="both", expand=True)
         f_cuerpo.columnconfigure(0, weight=1)
-        f_cuerpo.columnconfigure(1, minsize=160)
+        f_cuerpo.columnconfigure(1, minsize=182)
 
         # Sub-panel de campos de texto (lado izquierdo de la tarjeta)
         f_campos = tk.Frame(f_cuerpo, bg=COLOR_TARJETA)
-        f_campos.grid(row=0, column=0, sticky="nsew", padx=(0, 12))
+        f_campos.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
 
         tk.Label(f_campos, text="Cédula de Identidad:", bg=COLOR_TARJETA, fg=COLOR_TEXTO_PRINCIPAL, font=FUENTE_ETIQUETA).pack(anchor="w", pady=(0, 2))
         f_ced = tk.Frame(f_campos, bg=COLOR_TARJETA)
@@ -164,8 +164,8 @@ class GestorProfesoresUI:
         self.combo_nac_prof.current(0)
         self.combo_nac_prof.bind("<Return>", enfocar_siguiente)
 
-        self.entry_ced_prof = tk.Entry(f_ced, width=15, font=FUENTE_CUERPO, relief="solid", bd=1)
-        self.entry_ced_prof.pack(side="left", padx=(6, 0))
+        self.entry_ced_prof = tk.Entry(f_ced, width=13, font=FUENTE_CUERPO, relief="solid", bd=1)
+        self.entry_ced_prof.pack(side="left", padx=(5, 0))
         self.entry_ced_prof.bind("<Return>", enfocar_siguiente)
         self.entry_ced_prof.focus()
         AyudaVisual(self.entry_ced_prof, "Solo números sin puntos. Ej: 12345678")
@@ -182,7 +182,7 @@ class GestorProfesoresUI:
         self.combo_profesion.set("Lcdo. en Educación")
 
         # Sub-panel de Foto (lado derecho de la tarjeta de form)
-        f_foto_box = tk.Frame(f_cuerpo, bg=COLOR_TARJETA, width=160)
+        f_foto_box = tk.Frame(f_cuerpo, bg=COLOR_TARJETA, width=182)
         f_foto_box.grid(row=0, column=1, sticky="ns")
 
         tk.Label(f_foto_box, text="Fotografía:", bg=COLOR_TARJETA, fg=COLOR_TEXTO_PRINCIPAL, font=FUENTE_ETIQUETA).pack(anchor="center", pady=(0, 3))
@@ -204,14 +204,14 @@ class GestorProfesoresUI:
 
         self.btn_cargar_foto = crear_boton(
             f_foto_btns, "📷 Cargar", self.cargar_foto_click,
-            COLOR_PRIMARIO, COLOR_TEXTO_CLARO, padx=6, pady=5,
+            COLOR_PRIMARIO, COLOR_TEXTO_CLARO, padx=8, pady=5,
         )
         self.btn_cargar_foto.grid(row=0, column=0, sticky="ew", padx=(0, 2))
         AyudaVisual(self.btn_cargar_foto, "Cargar fotografía oficial del docente")
 
         self.btn_quitar_foto = crear_boton(
             f_foto_btns, "✖ Quitar", self.quitar_foto_click,
-            "#7F8C8D", COLOR_TEXTO_CLARO, padx=6, pady=5,
+            "#7F8C8D", COLOR_TEXTO_CLARO, padx=8, pady=5,
         )
         self.btn_quitar_foto.grid(row=0, column=1, sticky="ew", padx=(2, 0))
         AyudaVisual(self.btn_quitar_foto, "Remover la fotografía asignada")
@@ -243,23 +243,23 @@ class GestorProfesoresUI:
         # ══════════════════════════════════════════════════════════════════
         # COLUMNA DERECHA: LISTADO DE PROFESORES REGISTRADOS
         # ══════════════════════════════════════════════════════════════════
-        tarjeta_lista = crear_tarjeta(contenedor, padx=20, pady=20)
-        tarjeta_lista.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
+        tarjeta_lista = crear_tarjeta(contenedor, padx=14, pady=12)
+        tarjeta_lista.grid(row=0, column=1, sticky="nsew", padx=(6, 0))
 
         tk.Label(
             tarjeta_lista, text="DOCENTES REGISTRADOS",
             font=FUENTE_SUBTITULO, bg=COLOR_TARJETA, fg=COLOR_PRIMARIO
-        ).pack(anchor="w", pady=(0, 5))
+        ).pack(anchor="w", pady=(0, 4))
         self.lbl_subtitulo_lista = tk.Label(
             tarjeta_lista, text="Seleccione un docente para editarlo o imprimir su ficha oficial.",
             font=FUENTE_PEQUEÑA, bg=COLOR_TARJETA, fg=COLOR_TEXTO_SECUNDARIO,
             wraplength=380, justify="left"
         )
-        self.lbl_subtitulo_lista.pack(anchor="w", pady=(0, 10))
+        self.lbl_subtitulo_lista.pack(anchor="w", pady=(0, 8))
 
         cols = ("id", "cedula", "nombre", "profesion")
         encabezados = ["ID", "Cédula", "Nombre del Profesor", "Profesión"]
-        anchos = [40, 95, 180, 140]
+        anchos = [35, 90, 160, 125]
         anclas = ["center", "center", "w", "w"]
 
         self.tree_prof, frame_tree = crear_treeview_zebra(

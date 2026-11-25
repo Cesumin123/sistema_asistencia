@@ -105,12 +105,12 @@ class UIEstudiante:
         f_contenedor_form = tk.Frame(tarjeta, bg=COLOR_TARJETA)
         f_contenedor_form.pack(fill="x")
         f_contenedor_form.columnconfigure(0, weight=1)
-        f_contenedor_form.columnconfigure(1, minsize=148)
+        f_contenedor_form.columnconfigure(1, minsize=178)
 
         f_datos = tk.Frame(f_contenedor_form, bg=COLOR_TARJETA)
-        f_datos.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        f_datos.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
 
-        f_foto_est = tk.Frame(f_contenedor_form, bg=COLOR_TARJETA, width=148)
+        f_foto_est = tk.Frame(f_contenedor_form, bg=COLOR_TARJETA, width=178)
         f_foto_est.grid(row=0, column=1, sticky="ns")
 
         # ──────────────────────────────────────────────────────────
@@ -129,14 +129,14 @@ class UIEstudiante:
             f1, textvariable=self.var_nac, values=["V", "E", "P"],
             width=3, state="readonly",
         )
-        self.combo_nac.pack(side="left", padx=(3, 0))
+        self.combo_nac.pack(side="left", padx=(2, 0))
         self.entry_cedula = tk.Entry(f1, width=11, font=FUENTE_CUERPO, relief="solid", bd=1)
-        self.entry_cedula.pack(side="left", padx=(3, 10))
+        self.entry_cedula.pack(side="left", padx=(2, 8))
         AyudaVisual(self.entry_cedula, "Número de cédula sin puntos.")
 
         tk.Label(f1, text="Nombre Completo:", bg=COLOR_TARJETA, font=FUENTE_ETIQUETA).pack(side="left")
-        self.entry_nombre = tk.Entry(f1, width=25, font=FUENTE_CUERPO, relief="solid", bd=1)
-        self.entry_nombre.pack(side="left", padx=(3, 10))
+        self.entry_nombre = tk.Entry(f1, width=22, font=FUENTE_CUERPO, relief="solid", bd=1)
+        self.entry_nombre.pack(side="left", padx=(3, 8))
         self.entry_nombre.bind("<KeyRelease>", self.convertir_mayus)
 
         tk.Label(f1, text="Género:", bg=COLOR_TARJETA, font=FUENTE_ETIQUETA).pack(side="left")
@@ -144,7 +144,7 @@ class UIEstudiante:
             f1, textvariable=self.var_genero, values=["M", "F"],
             width=3, state="readonly",
         )
-        self.combo_genero.pack(side="left", padx=(3, 0))
+        self.combo_genero.pack(side="left", padx=(2, 0))
 
         # Fila 2: Fecha Nac, Año, Sección, Escolaridad, Turno, Condición
         f2 = tk.Frame(f_datos, bg=COLOR_TARJETA)
@@ -155,39 +155,39 @@ class UIEstudiante:
             f2, width=9, date_pattern='dd/mm/yyyy', locale='es_ES',
             background='darkblue', state="readonly",
         )
-        self.calendario.pack(side="left", padx=(3, 8))
+        self.calendario.pack(side="left", padx=(2, 5))
 
         tk.Label(f2, text="Año:", bg=COLOR_TARJETA, font=FUENTE_ETIQUETA).pack(side="left")
         self.entry_grado = tk.Entry(f2, width=3, font=FUENTE_CUERPO, relief="solid", bd=1)
-        self.entry_grado.pack(side="left", padx=(3, 8))
+        self.entry_grado.pack(side="left", padx=(2, 5))
 
         tk.Label(f2, text="Sec:", bg=COLOR_TARJETA, font=FUENTE_ETIQUETA).pack(side="left")
         self.combo_seccion = ttk.Combobox(
             f2, textvariable=self.var_seccion,
             values=list(string.ascii_uppercase), width=3, state="readonly",
         )
-        self.combo_seccion.pack(side="left", padx=(3, 8))
+        self.combo_seccion.pack(side="left", padx=(2, 5))
 
         tk.Label(f2, text="Escol.:", bg=COLOR_TARJETA, font=FUENTE_ETIQUETA).pack(side="left")
         self.combo_escolaridad = ttk.Combobox(
             f2, textvariable=self.var_escolaridad,
-            values=["Regular", "Materia Pendiente", "Repite"], width=12, state="readonly",
+            values=["Regular", "Materia Pendiente", "Repite"], width=11, state="readonly",
         )
-        self.combo_escolaridad.pack(side="left", padx=(3, 8))
+        self.combo_escolaridad.pack(side="left", padx=(2, 5))
 
         tk.Label(f2, text="Turno:", bg=COLOR_TARJETA, font=FUENTE_ETIQUETA).pack(side="left")
         self.combo_turno = ttk.Combobox(
             f2, textvariable=self.var_turno,
             values=["Mañana", "Tarde"], width=7, state="readonly",
         )
-        self.combo_turno.pack(side="left", padx=(3, 8))
+        self.combo_turno.pack(side="left", padx=(2, 5))
 
         tk.Label(f2, text="Cond:", bg=COLOR_TARJETA, font=FUENTE_ETIQUETA).pack(side="left")
         self.combo_condicion = ttk.Combobox(
             f2, textvariable=self.var_condicion,
-            values=["Activo", "Preinscrito"], width=9, state="readonly",
+            values=["Activo", "Preinscrito"], width=8, state="readonly",
         )
-        self.combo_condicion.pack(side="left", padx=(3, 0))
+        self.combo_condicion.pack(side="left", padx=(2, 0))
 
         # ──────────────────────────────────────────────────────────
         # SUB-BLOQUE 2: DATOS FAMILIARES Y REPRESENTANTES
@@ -259,14 +259,14 @@ class UIEstudiante:
 
         self.btn_cargar_foto = crear_boton(
             f_foto_btns, "📷 Cargar", self.cargar_foto_click,
-            COLOR_PRIMARIO, COLOR_TEXTO_CLARO, padx=5, pady=4,
+            COLOR_PRIMARIO, COLOR_TEXTO_CLARO, padx=7, pady=5,
         )
         self.btn_cargar_foto.grid(row=0, column=0, sticky="ew", padx=(0, 2))
         AyudaVisual(self.btn_cargar_foto, "Cargar fotografía oficial del estudiante")
 
         self.btn_quitar_foto = crear_boton(
             f_foto_btns, "✖ Quitar", self.quitar_foto_click,
-            "#7F8C8D", COLOR_TEXTO_CLARO, padx=5, pady=4,
+            "#7F8C8D", COLOR_TEXTO_CLARO, padx=7, pady=5,
         )
         self.btn_quitar_foto.grid(row=0, column=1, sticky="ew", padx=(2, 0))
         AyudaVisual(self.btn_quitar_foto, "Eliminar fotografía asignada")
@@ -289,7 +289,7 @@ class UIEstudiante:
         anclas = ["center", "w", "center", "w", "center", "center", "center", "center", "center", "center", "center"]
 
         self.tree, frame_tree = crear_treeview_zebra(
-            self.root, cols, encabezados, anchos, anclas, alto=8,
+            self.root, cols, encabezados, anchos, anclas, alto=7,
         )
         frame_tree.pack(fill="both", expand=True, padx=10, pady=(0, 8))
         self.tree.bind("<<TreeviewSelect>>", self.cargar_formulario_desde_tabla)

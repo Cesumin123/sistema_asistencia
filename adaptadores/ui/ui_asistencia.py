@@ -189,7 +189,7 @@ class PlanillaUI:
         self.win = tk.Toplevel(parent) if parent else tk.Toplevel()
         self.win.title("Planilla de Asistencia — Pase de Lista")
         self.win.config(bg=COLOR_FONDO_APP)
-        centrar_ventana(self.win, 900, 650)
+        centrar_ventana(self.win, 940, 640)
         configurar_ventana_hija(self.win, parent)
         agregar_barra_superior_volver(self.win, parent, f"Planilla: {nombre_clase}")
         maximizar_ventana(self.win)
@@ -201,16 +201,17 @@ class PlanillaUI:
 
     def _crear_interfaz(self):
         self._crear_encabezado()
-        self._crear_tabla()
+        # Empaquetar botoneras abajo ANTES de la tabla expandible para que nunca se oculten en 1024x700
         self._crear_botones()
+        self._crear_tabla()
         self.refrescar()
 
     def _crear_encabezado(self):
-        f_head = tk.Frame(self.win, bg=COLOR_PRIMARIO, pady=10)
+        f_head = tk.Frame(self.win, bg=COLOR_PRIMARIO, pady=8)
         f_head.pack(fill="x")
 
         tk.Label(f_head, text=f"📋  {self.nombre_clase}", font=FUENTE_ENCABEZADO, fg=COLOR_TEXTO_CLARO, bg=COLOR_PRIMARIO).pack()
-        tk.Label(f_head, text=f"Fecha: {self.planilla.fecha}", font=FUENTE_PEQUEÑA_BOLD, fg="#BDC3C7", bg=COLOR_PRIMARIO).pack()
+        tk.Label(f_head, text=f"Fecha: {self.planilla.fecha}", font=FUENTE_PEQUEÑA_BOLD, fg="#D5D8DC", bg=COLOR_PRIMARIO).pack()
 
         # Estadísticas
         self.lbl_stats = tk.Label(f_head, text="", font=FUENTE_PEQUEÑA, fg=COLOR_TEXTO_CLARO, bg=COLOR_PRIMARIO)
@@ -219,7 +220,7 @@ class PlanillaUI:
         # Indicador de respaldo anti-apagones
         self.lbl_respaldo = tk.Label(
             f_head, text="💾 Respaldo automático activo", font=FUENTE_PEQUEÑA,
-            fg="#2ECC71", bg=COLOR_PRIMARIO,
+            fg="#58D68D", bg=COLOR_PRIMARIO,
         )
         self.lbl_respaldo.pack()
 
@@ -229,23 +230,47 @@ class PlanillaUI:
         anchos = [120, 450, 100]
         anclas = ["center", "w", "center"]
 
-        self.tree, frame_tree = crear_treeview_zebra(self.win, cols, encabezados, anchos, anclas, alto=15)
-        frame_tree.pack(fill="both", expand=True, padx=20, pady=10)
+        self.tree, frame_tree = crear_treeview_zebra(self.win, cols, encabezados, anchos, anclas, alto=11)
+        frame_tree.pack(fill="both", expand=True, padx=20, pady=8)
         self.tree.bind("<Double-Button-1>", self._on_doble_click)
 
     def _crear_botones(self):
-        fb = tk.Frame(self.win, bg=COLOR_FONDO_APP, pady=8)
-        fb.pack()
+        f_acciones = tk.Frame(self.win, bg=COLOR_FONDO_APP, pady=6)
+        f_acciones.pack(side="bottom", fill="x")
+        f_acc_inner = tk.Frame(f_acciones, bg=COLOR_FONDO_APP)
+        f_acc_inner.pack()
 
-        crear_boton(fb, "✅ PRESENTE", lambda: self._cambiar_seleccionados(EstadoAsistencia.PRESENTE), COLOR_ACENTO, COLOR_TEXTO_CLARO).pack(side="left", padx=6)
-        crear_boton(fb, "❌ AUSENTE", lambda: self._cambiar_seleccionados(EstadoAsistencia.AUSENTE), COLOR_PELIGRO, COLOR_TEXTO_CLARO).pack(side="left", padx=6)
-        crear_boton(fb, "⚠️ JUSTIFICADA", lambda: self._cambiar_seleccionados(EstadoAsistencia.JUSTIFICADO), COLOR_ADVERTENCIA, COLOR_TEXTO_CLARO).pack(side="left", padx=6)
+        self.btn_guardar = crear_boton(
+            f_acc_inner, "💾  GUARDAR EN BASE DE DATOS", self._guardar,
+            COLOR_PRIMARIO, COLOR_TEXTO_CLARO, pady=6,
+        )
+        self.btn_guardar.pack(side="left", padx=8, ipady=2)
+        self.btn_cerrar = crear_boton(
+            f_acc_inner, "✖  CERRAR SIN GUARDAR", self._cerrar_sin_guardar,
+            "#7F8C8D", COLOR_TEXTO_CLARO, pady=6,
+        )
+        self.btn_cerrar.pack(side="left", padx=8)
 
-        f_acciones = tk.Frame(self.win, bg=COLOR_FONDO_APP, pady=4)
-        f_acciones.pack()
+        fb = tk.Frame(self.win, bg=COLOR_FONDO_APP, pady=6)
+        fb.pack(side="bottom", fill="x")
+        fb_inner = tk.Frame(fb, bg=COLOR_FONDO_APP)
+        fb_inner.pack()
 
-        crear_boton(f_acciones, "💾  GUARDAR EN BASE DE DATOS", self._guardar, COLOR_PRIMARIO, COLOR_TEXTO_CLARO, ancho=35).pack(side="left", padx=8, ipady=4)
-        crear_boton(f_acciones, "✖  CERRAR SIN GUARDAR", self._cerrar_sin_guardar, "#7F8C8D", COLOR_TEXTO_CLARO).pack(side="left", padx=8)
+        self.btn_presente = crear_boton(
+            fb_inner, "✅ PRESENTE", lambda: self._cambiar_seleccionados(EstadoAsistencia.PRESENTE),
+            COLOR_ACENTO, COLOR_TEXTO_CLARO, pady=6,
+        )
+        self.btn_presente.pack(side="left", padx=6)
+        self.btn_ausente = crear_boton(
+            fb_inner, "❌ AUSENTE", lambda: self._cambiar_seleccionados(EstadoAsistencia.AUSENTE),
+            COLOR_PELIGRO, COLOR_TEXTO_CLARO, pady=6,
+        )
+        self.btn_ausente.pack(side="left", padx=6)
+        self.btn_justificada = crear_boton(
+            fb_inner, "⚠️ JUSTIFICADA", lambda: self._cambiar_seleccionados(EstadoAsistencia.JUSTIFICADO),
+            COLOR_ADVERTENCIA, COLOR_TEXTO_CLARO, pady=6,
+        )
+        self.btn_justificada.pack(side="left", padx=6)
 
     def _on_doble_click(self, event):
         seleccion = self.tree.selection()

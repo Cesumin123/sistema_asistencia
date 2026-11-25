@@ -790,6 +790,93 @@ def test_ui_login_modal_recuperacion_dos_pasos(tk_app, db_entorno, mocks_dialogo
     assert cb_login.call_args[0][0].username == "admin"
 
 
+def test_ui_login_qa_usabilidad_visibilidad_modales_y_escape(tk_app, db_entorno, mocks_dialogos):
+    """
+    Cubre los hallazgos QA de ui_login.py:
+    - Alternar mostrar/ocultar contraseña en Login, Registro y Recuperación.
+    - Campos vacíos y error de credenciales limpian contraseña y muestran alerta con parent=.
+    - Bloqueo de modales duplicados al invocar dos veces seguidas.
+    - Cierre limpio con tecla Escape sin destruir la ventana Login.
+    - Todos los widgets del Login y sus modales caben dentro de sus dimensiones configuradas.
+    """
+    repo_usr = SQLiteRepositorioUsuario(db_entorno)
+    cb_login = MagicMock()
+
+    win_login = tk.Toplevel(tk_app)
+    login = VentanaLogin(repo_usr, on_login_exitoso=cb_login, root=win_login)
+    win_login.update()
+
+    # 1. Todos los widgets del Login caben dentro de 430x570 sin recortes
+    for w in (login.entry_usuario, login.entry_password, login.chk_mostrar_pwd,
+              login.btn_iniciar, login.btn_registrar, login.btn_recuperar):
+        y_rel = w.winfo_rooty() - win_login.winfo_rooty()
+        assert y_rel + w.winfo_height() <= 570, f"Widget {w} excede alto Login: {y_rel + w.winfo_height()}"
+
+    # 2. Alternar Ver / Ocultar contraseña en Login
+    assert login.entry_password.cget("show") == "●"
+    login.chk_mostrar_pwd.invoke()
+    assert login.entry_password.cget("show") == ""
+    login.chk_mostrar_pwd.invoke()
+    assert login.entry_password.cget("show") == "●"
+
+    # 3. Campos vacíos: aviso específico sin llamar al repo
+    login.entry_usuario.delete(0, tk.END)
+    login.entry_password.delete(0, tk.END)
+    login.iniciar_sesion()
+    assert mocks_dialogos["showwarning"].call_count >= 1
+    assert cb_login.call_count == 0
+
+    login.entry_usuario.insert(0, "admin")
+    login.iniciar_sesion()
+    assert mocks_dialogos["showwarning"].call_count >= 2
+
+    # 4. Credenciales erróneas limpian el campo contraseña
+    login.entry_password.insert(0, "clave_mala")
+    login.iniciar_sesion()
+    assert mocks_dialogos["showerror"].call_count >= 1
+    assert login.entry_password.get() == ""
+
+    # 5. Bloqueo de modal de Recuperación duplicado + ver/ocultar + cierre con Escape
+    login.abrir_modal_recuperacion()
+    win_rec_1 = login._modal_recuperacion["win"]
+    login.abrir_modal_recuperacion()  # Segunda invocación no debe crear otra ventana
+    assert login._modal_recuperacion["win"] is win_rec_1
+    win_rec_1.update()
+
+    # Verificar que todos los controles del modal de recuperación caben en 440x535
+    btn_rest = login._modal_recuperacion["btn_restablecer"]
+    y_rest = btn_rest.winfo_rooty() - win_rec_1.winfo_rooty()
+    assert y_rest + btn_rest.winfo_height() <= 535
+
+    # Validar clave maestra para habilitar Paso 2 y probar mostrar/ocultar
+    login._modal_recuperacion["entry_maestra"].insert(0, "DIRECTOR2025")
+    login._modal_recuperacion["btn_validar"].invoke()
+    assert login._modal_recuperacion["entry_nueva"].cget("show") == "*"
+    login._modal_recuperacion["chk_mostrar_pwd"].invoke()
+    assert login._modal_recuperacion["entry_nueva"].cget("show") == ""
+    assert login._modal_recuperacion["entry_confirmar"].cget("show") == ""
+
+    # Cerrar modal de recuperación con Escape sin destruir Login
+    win_rec_1.event_generate("<Escape>")
+    win_login.update()
+    assert not win_rec_1.winfo_exists()
+    assert win_login.winfo_exists()
+
+    # 6. Bloqueo de modal de Registro duplicado + cierre con Escape
+    mocks_dialogos["askstring"].return_value = "DIRECTOR2025"
+    login.solicitar_registro()
+    win_reg_1 = login._modal_registro["win"]
+    login._abrir_modal_registro()
+    assert login._modal_registro["win"] is win_reg_1
+    win_reg_1.update()
+    assert win_reg_1.winfo_reqheight() <= 520
+
+    win_reg_1.event_generate("<Escape>")
+    win_login.update()
+    assert not win_reg_1.winfo_exists()
+    assert win_login.winfo_exists()
+
+
 def test_ui_menu_principal_estadisticas_rbac_docente_bloqueado(tk_app):
     """
     Verifica tarjeta de Estadísticas en MenuPrincipalUI:

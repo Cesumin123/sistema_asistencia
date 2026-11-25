@@ -49,8 +49,13 @@ class GestorClasesUI:
 
         # Encabezado
         tk.Label(tarjeta, text="ASIGNACIÓN ACADÉMICA DE MATERIAS", font=FUENTE_SUBTITULO, bg=COLOR_TARJETA, fg=COLOR_PRIMARIO).pack(anchor="w")
-        tk.Label(tarjeta, text="Vincule la materia con el profesor titular, año y secciones.", font=FUENTE_PEQUEÑA, bg=COLOR_TARJETA, fg=COLOR_TEXTO_SECUNDARIO).pack(anchor="w", pady=(2, 15))
-        crear_separador(tarjeta).pack(fill="x", pady=(0, 20))
+        tk.Label(
+            tarjeta,
+            text="Vincule la materia con el profesor titular, año y secciones.",
+            font=FUENTE_PEQUEÑA, bg=COLOR_TARJETA, fg=COLOR_TEXTO_SECUNDARIO,
+            wraplength=460, justify="left",
+        ).pack(anchor="w", pady=(2, 12))
+        crear_separador(tarjeta).pack(fill="x", pady=(0, 16))
 
         # Formulario Grid
         f_grid = tk.Frame(tarjeta, bg=COLOR_TARJETA)
@@ -84,9 +89,12 @@ class GestorClasesUI:
         self.listbox_secciones.configure(yscrollcommand=scroll_sec.set)
         self.listbox_secciones.pack(side="left")
         scroll_sec.pack(side="right", fill="y")
+        AyudaVisual(self.listbox_secciones, "Haga clic para seleccionar una o varias secciones (A–Z)")
 
         # Botón
-        crear_boton(tarjeta, "💾  INSCRIBIR MATERIA", self.guardar_click, COLOR_SECUNDARIO, COLOR_TEXTO_CLARO, COLOR_SECUNDARIO_HOVER).pack(anchor="w", pady=(15, 0))
+        self.btn_inscribir = crear_boton(tarjeta, "💾  INSCRIBIR MATERIA", self.guardar_click, COLOR_SECUNDARIO, COLOR_TEXTO_CLARO, COLOR_SECUNDARIO_HOVER)
+        self.btn_inscribir.pack(anchor="w", pady=(15, 0))
+        AyudaVisual(self.btn_inscribir, "Asignar la materia seleccionada a todas las secciones marcadas")
 
     def cargar_datos_en_listas(self):
         profesores = self.repositorio.obtener_profesores_activos()

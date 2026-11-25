@@ -154,7 +154,7 @@ class MenuPrincipalUI:
         ).pack(pady=(10, 0))
         tk.Label(
             sidebar, text="'Colinas del Llano'", font=FUENTE_PEQUEÑA,
-            fg="#95A5A6", bg=COLOR_SIDEBAR,
+            fg="#D5D8DC", bg=COLOR_SIDEBAR,
         ).pack()
 
         crear_separador(sidebar).pack(fill="x", padx=30, pady=15)
