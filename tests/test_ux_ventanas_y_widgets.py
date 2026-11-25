@@ -34,49 +34,6 @@ from adaptadores.ui.utilidades_ui import (
 )
 
 
-def _liberar_y_destruir_tk(root):
-    """Suelta referencias a PhotoImage y fuerza GC antes de destruir el intérprete Tcl."""
-    def _limpiar_widgets(w):
-        try:
-            for ch in list(w.winfo_children()):
-                _limpiar_widgets(ch)
-        except Exception:
-            pass
-        for attr in ("image", "_foto_preview_ref", "preview_foto_tk", "img_logo_tk", "logo_tk"):
-            if hasattr(w, attr):
-                try:
-                    setattr(w, attr, None)
-                except Exception:
-                    pass
-        try:
-            w.configure(image="")
-        except Exception:
-            pass
-
-    try:
-        if root and root.winfo_exists():
-            _limpiar_widgets(root)
-            root.update_idletasks()
-    except Exception:
-        pass
-    gc.collect()
-    try:
-        if root and root.winfo_exists():
-            root.destroy()
-    except Exception:
-        pass
-    gc.collect()
-
-
-@pytest.fixture
-def tk_root():
-    """Crea una raíz Tkinter oculta para pruebas de UI y garantiza su destrucción segura."""
-    root = tk.Tk()
-    root.withdraw()
-    yield root
-    _liberar_y_destruir_tk(root)
-
-
 @pytest.fixture
 def db_mem():
     """Conexión SQLite en memoria con esquema migrado."""
@@ -365,7 +322,7 @@ def test_renderizado_foto_preview_en_ui_profesor_y_estudiante(tk_root, db_mem, t
 # TEST 5: MAXIMIZACIÓN MULTIPLATAFORMA DEFENSIVA POST-LOGIN
 # ═════════════════════════════════════════════════════════════════════
 
-def test_maximizar_ventana_tk_y_toplevel_sin_tclerror(tk_root):
+def test_maximizar_ventana_tk_y_toplevel_sin_tclerror(_session_tk, tk_root):
     """
     Verifica que maximizar_ventana(ventana) opere defensivamente sin lanzar TclError:
     - Habilita resizable(True, True).
@@ -373,9 +330,10 @@ def test_maximizar_ventana_tk_y_toplevel_sin_tclerror(tk_root):
     - Solo recurre a geometry como fallback si attributes('-zoomed', True) lanza TclError.
     - Maneja None y ventanas destruidas limpiamente.
     """
-    # 1. Sobre tk.Tk
-    maximizar_ventana(tk_root)
-    tk_root.update_idletasks()
+    # 1. Sobre tk.Tk único de sesión (sin destruirlo)
+    maximizar_ventana(_session_tk)
+    _session_tk.update_idletasks()
+    _session_tk.withdraw()
 
     # 2. Sobre tk.Toplevel independiente y tras configurar_ventana_hija(es_modal=False)
     win = tk.Toplevel(tk_root)

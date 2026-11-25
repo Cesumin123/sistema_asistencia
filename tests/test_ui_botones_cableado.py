@@ -56,53 +56,8 @@ from dominio.permisos import (
 
 
 # ═════════════════════════════════════════════════════════════════════
-# FIXTURES DE ENTORNO
+# FIXTURES DE ENTORNO (tk_app centralizado en tests/conftest.py)
 # ═════════════════════════════════════════════════════════════════════
-
-def _liberar_y_destruir_tk(root):
-    """Suelta referencias a PhotoImage y fuerza GC antes de destruir el intérprete Tcl."""
-    def _limpiar_widgets(w):
-        try:
-            for ch in list(w.winfo_children()):
-                _limpiar_widgets(ch)
-        except Exception:
-            pass
-        for attr in ("image", "_foto_preview_ref", "preview_foto_tk", "img_logo_tk", "logo_tk"):
-            if hasattr(w, attr):
-                try:
-                    setattr(w, attr, None)
-                except Exception:
-                    pass
-        try:
-            w.configure(image="")
-        except Exception:
-            pass
-
-    try:
-        if root and root.winfo_exists():
-            _limpiar_widgets(root)
-            root.update_idletasks()
-    except Exception:
-        pass
-    gc.collect()
-    try:
-        if root and root.winfo_exists():
-            root.destroy()
-    except Exception:
-        pass
-    gc.collect()
-
-
-@pytest.fixture
-def tk_app():
-    """Provee una raíz Tkinter oculta garantizando su destrucción segura al finalizar."""
-    try:
-        root = tk.Tk()
-        root.withdraw()
-    except tk.TclError:
-        pytest.skip("Entorno gráfico Tkinter no disponible.")
-    yield root
-    _liberar_y_destruir_tk(root)
 
 
 @pytest.fixture
