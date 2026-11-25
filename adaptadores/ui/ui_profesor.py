@@ -49,24 +49,6 @@ def resolver_ruta_logo() -> str | None:
     return None
 
 
-PROFESIONES_SUGERIDAS = [
-    "Lcdo. en Educación",
-    "Lcdo. en Matemáticas",
-    "Lcdo. en Física",
-    "Lcdo. en Química",
-    "Lcdo. en Biología",
-    "Lcdo. en Castellano y Literatura",
-    "Lcdo. en Idiomas Modernos",
-    "Lcdo. en Ciencias Sociales",
-    "Lcdo. en Educación Física",
-    "Ingeniero",
-    "TSU",
-    "Profesor",
-    "MSc.",
-    "Especialista",
-]
-
-
 class GestorProfesoresUI:
     """Adaptador de Interfaz de Usuario para el registro y gestión de Profesores."""
 
@@ -155,9 +137,9 @@ class GestorProfesoresUI:
         f_campos = tk.Frame(f_cuerpo, bg=COLOR_TARJETA)
         f_campos.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
 
-        tk.Label(f_campos, text="Cédula de Identidad:", bg=COLOR_TARJETA, fg=COLOR_TEXTO_PRINCIPAL, font=FUENTE_ETIQUETA).pack(anchor="w", pady=(0, 2))
+        tk.Label(f_campos, text="Cédula de Identidad:", bg=COLOR_TARJETA, fg=COLOR_TEXTO_PRINCIPAL, font=FUENTE_ETIQUETA).pack(anchor="w", pady=(0, 1))
         f_ced = tk.Frame(f_campos, bg=COLOR_TARJETA)
-        f_ced.pack(anchor="w", pady=(0, 6))
+        f_ced.pack(anchor="w", pady=(0, 4))
 
         self.combo_nac_prof = ttk.Combobox(f_ced, values=["V", "E", "P"], width=3, state="readonly")
         self.combo_nac_prof.pack(side="left")
@@ -170,16 +152,24 @@ class GestorProfesoresUI:
         self.entry_ced_prof.focus()
         AyudaVisual(self.entry_ced_prof, "Solo números sin puntos. Ej: 12345678")
 
-        tk.Label(f_campos, text="Nombre Completo del Profesor:", bg=COLOR_TARJETA, fg=COLOR_TEXTO_PRINCIPAL, font=FUENTE_ETIQUETA).pack(anchor="w", pady=(0, 2))
+        tk.Label(f_campos, text="Nombre Completo del Profesor:", bg=COLOR_TARJETA, fg=COLOR_TEXTO_PRINCIPAL, font=FUENTE_ETIQUETA).pack(anchor="w", pady=(0, 1))
         self.entry_nom_prof = tk.Entry(f_campos, font=FUENTE_CUERPO, relief="solid", bd=1)
-        self.entry_nom_prof.pack(fill="x", pady=(0, 6))
+        self.entry_nom_prof.pack(fill="x", pady=(0, 4))
         self.entry_nom_prof.bind("<KeyRelease>", self.convertir_mayus)
         self.entry_nom_prof.bind("<Return>", enfocar_siguiente)
 
-        tk.Label(f_campos, text="Profesión / Título Académico:", bg=COLOR_TARJETA, fg=COLOR_TEXTO_PRINCIPAL, font=FUENTE_ETIQUETA).pack(anchor="w", pady=(0, 2))
-        self.combo_profesion = ttk.Combobox(f_campos, values=PROFESIONES_SUGERIDAS, font=FUENTE_CUERPO)
-        self.combo_profesion.pack(fill="x", pady=(0, 6))
-        self.combo_profesion.set("Lcdo. en Educación")
+        tk.Label(f_campos, text="Profesión / Título Académico:", bg=COLOR_TARJETA, fg=COLOR_TEXTO_PRINCIPAL, font=FUENTE_ETIQUETA).pack(anchor="w", pady=(0, 1))
+        self.entry_profesion = tk.Entry(f_campos, font=FUENTE_CUERPO, relief="solid", bd=1)
+        self.entry_profesion.pack(fill="x", pady=(0, 4))
+        self.entry_profesion.bind("<KeyRelease>", self.convertir_mayus)
+        self.entry_profesion.bind("<Return>", enfocar_siguiente)
+        AyudaVisual(self.entry_profesion, "Escriba libremente el título o especialidad del docente")
+
+        tk.Label(f_campos, text="Teléfono de Contacto:", bg=COLOR_TARJETA, fg=COLOR_TEXTO_PRINCIPAL, font=FUENTE_ETIQUETA).pack(anchor="w", pady=(0, 1))
+        self.entry_telefono_prof = tk.Entry(f_campos, font=FUENTE_CUERPO, relief="solid", bd=1)
+        self.entry_telefono_prof.pack(fill="x", pady=(0, 4))
+        self.entry_telefono_prof.bind("<Return>", enfocar_siguiente)
+        AyudaVisual(self.entry_telefono_prof, "Número de teléfono de contacto del docente (opcional)")
 
         # Sub-panel de Foto (lado derecho de la tarjeta de form)
         f_foto_box = tk.Frame(f_cuerpo, bg=COLOR_TARJETA, width=182)
@@ -257,10 +247,10 @@ class GestorProfesoresUI:
         )
         self.lbl_subtitulo_lista.pack(anchor="w", pady=(0, 8))
 
-        cols = ("id", "cedula", "nombre", "profesion")
-        encabezados = ["ID", "Cédula", "Nombre del Profesor", "Profesión"]
-        anchos = [35, 90, 160, 125]
-        anclas = ["center", "center", "w", "w"]
+        cols = ("id", "cedula", "nombre", "profesion", "telefono")
+        encabezados = ["ID", "Cédula", "Nombre del Profesor", "Profesión", "Teléfono"]
+        anchos = [32, 82, 138, 100, 82]
+        anclas = ["center", "center", "w", "w", "center"]
 
         self.tree_prof, frame_tree = crear_treeview_zebra(
             tarjeta_lista, cols, encabezados, anchos, anclas, alto=14
@@ -345,7 +335,7 @@ class GestorProfesoresUI:
         for p in profesores:
             insertar_fila_zebra(
                 self.tree_prof,
-                (p.id_profesor, p.cedula, p.nombre_completo, p.profesion or "Docente")
+                (p.id_profesor, p.cedula, p.nombre_completo, p.profesion or "-", p.telefono or "-")
             )
 
     def seleccionar_profesor_desde_tabla(self, event=None):
@@ -372,9 +362,10 @@ class GestorProfesoresUI:
         else:
             self.entry_ced_prof.insert(0, prof.cedula)
 
-        # Nombre y Profesión
+        # Nombre, Profesión y Teléfono
         self.entry_nom_prof.insert(0, prof.nombre_completo)
-        self.combo_profesion.set(prof.profesion or "Lcdo. en Educación")
+        self.entry_profesion.insert(0, prof.profesion or "")
+        self.entry_telefono_prof.insert(0, getattr(prof, "telefono", "") or "")
 
         # Foto
         self.foto_path_actual = prof.foto_path or ""
@@ -386,7 +377,8 @@ class GestorProfesoresUI:
     def limpiar_campos_sin_seleccion(self):
         self.entry_ced_prof.delete(0, tk.END)
         self.entry_nom_prof.delete(0, tk.END)
-        self.combo_profesion.set("Lcdo. en Educación")
+        self.entry_profesion.delete(0, tk.END)
+        self.entry_telefono_prof.delete(0, tk.END)
         self.combo_nac_prof.current(0)
         self.quitar_foto_click()
 
@@ -401,14 +393,16 @@ class GestorProfesoresUI:
         parent = self.notebook.winfo_toplevel()
         cedula = self._obtener_cedula_actual()
         nombre = self.entry_nom_prof.get().strip().upper()
-        profesion = self.combo_profesion.get().strip().upper()
+        profesion = self.entry_profesion.get().strip().upper()
+        telefono = self.entry_telefono_prof.get().strip()
 
         try:
             nuevo = Profesor(
                 cedula=cedula,
                 nombre_completo=nombre,
                 profesion=profesion,
-                foto_path=self.foto_path_actual
+                foto_path=self.foto_path_actual,
+                telefono=telefono,
             )
             nuevo.validar()
             self.repositorio.guardar(nuevo)
@@ -431,7 +425,8 @@ class GestorProfesoresUI:
 
         cedula = self._obtener_cedula_actual()
         nombre = self.entry_nom_prof.get().strip().upper()
-        profesion = self.combo_profesion.get().strip().upper()
+        profesion = self.entry_profesion.get().strip().upper()
+        telefono = self.entry_telefono_prof.get().strip()
 
         try:
             prof_actualizado = Profesor(
@@ -439,7 +434,8 @@ class GestorProfesoresUI:
                 nombre_completo=nombre,
                 id_profesor=self.profesor_seleccionado.id_profesor,
                 profesion=profesion,
-                foto_path=self.foto_path_actual
+                foto_path=self.foto_path_actual,
+                telefono=telefono,
             )
             prof_actualizado.validar()
             if self.repositorio.actualizar(prof_actualizado):

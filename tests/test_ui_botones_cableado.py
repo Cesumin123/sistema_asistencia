@@ -285,16 +285,23 @@ def test_ui_profesor_todos_los_botones(tk_app, db_entorno, tmp_path, mocks_dialo
     assert ui.foto_path_actual == ""
     assert ui.lbl_foto.cget("text") == "[ SIN FOTO ]"
 
-    # 3. Guardar Profesor (con foto recargada)
+    # Verificar que Profesión es campo de texto libre (tk.Entry) y existe entry_telefono_prof
+    assert isinstance(ui.entry_profesion, tk.Entry)
+    assert not isinstance(ui.entry_profesion, ttk.Combobox)
+    assert isinstance(ui.entry_telefono_prof, tk.Entry)
+
+    # 3. Guardar Profesor (con foto recargada, profesión libre y teléfono)
     ui.cargar_foto_click()
     ui.entry_nom_prof.insert(0, "Docente Nuevo")
-    ui.combo_profesion.set("Lcdo. en Matemáticas")
+    ui.entry_profesion.insert(0, "Ing. en Robótica Educativa")
+    ui.entry_telefono_prof.insert(0, "0414-8887766")
     ui.guardar_click()
     assert mocks_dialogos["showinfo"].call_count >= 1
 
     prof_guardado = repo_prof.obtener_por_cedula("V-19888777")
     assert prof_guardado is not None
-    assert prof_guardado.profesion == "LCDO. EN MATEMÁTICAS"
+    assert prof_guardado.profesion == "ING. EN ROBÓTICA EDUCATIVA"
+    assert prof_guardado.telefono == "0414-8887766"
 
     # 4. Actualizar Profesor (seleccionando el registro exacto en el tree)
     for item in ui.tree_prof.get_children():
@@ -304,14 +311,22 @@ def test_ui_profesor_todos_los_botones(tk_app, db_entorno, tmp_path, mocks_dialo
             ui.seleccionar_profesor_desde_tabla()
             break
 
+    # Verificar que seleccionar cargó profesión libre y teléfono en los Entry
+    assert ui.entry_profesion.get() == "ING. EN ROBÓTICA EDUCATIVA"
+    assert ui.entry_telefono_prof.get() == "0414-8887766"
+
     ui.entry_nom_prof.delete(0, tk.END)
     ui.entry_nom_prof.insert(0, "Docente Nuevo Actualizado")
-    ui.combo_profesion.set("MSc. en Educación")
+    ui.entry_profesion.delete(0, tk.END)
+    ui.entry_profesion.insert(0, "MSc. en Educación")
+    ui.entry_telefono_prof.delete(0, tk.END)
+    ui.entry_telefono_prof.insert(0, "0424-1234567")
     ui.actualizar_click()
 
     prof_act = repo_prof.obtener_por_cedula("V-19888777")
     assert prof_act.nombre_completo == "DOCENTE NUEVO ACTUALIZADO"
     assert prof_act.profesion == "MSC. EN EDUCACIÓN"
+    assert prof_act.telefono == "0424-1234567"
 
     # 5. Imprimir Ficha PDF (Auditoría de ruta_salida y verificación física)
     for item in ui.tree_prof.get_children():
@@ -336,6 +351,8 @@ def test_ui_profesor_todos_los_botones(tk_app, db_entorno, tmp_path, mocks_dialo
     assert ui.profesor_seleccionado is None
     assert ui.entry_ced_prof.get() == ""
     assert ui.entry_nom_prof.get() == ""
+    assert ui.entry_profesion.get() == ""
+    assert ui.entry_telefono_prof.get() == ""
 
 
 # ═════════════════════════════════════════════════════════════════════

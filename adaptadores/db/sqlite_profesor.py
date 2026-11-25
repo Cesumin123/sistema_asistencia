@@ -19,12 +19,12 @@ class SQLiteRepositorioProfesor(RepositorioProfesor):
             cursor = conn.cursor()
             sql = """
                 INSERT INTO TBL_PROFESORES 
-                (NOMBRE_COMPLETO, CEDULA, ESTADO_ACTIVO, PROFESION, FOTO_PATH) 
-                VALUES (?, ?, ?, ?, ?)
+                (NOMBRE_COMPLETO, CEDULA, ESTADO_ACTIVO, PROFESION, FOTO_PATH, TELEFONO) 
+                VALUES (?, ?, ?, ?, ?, ?)
             """
             cursor.execute(sql, (
                 profesor.nombre_completo, profesor.cedula, profesor.estado_activo,
-                profesor.profesion, profesor.foto_path
+                profesor.profesion, profesor.foto_path, profesor.telefono
             ))
             conn.commit()
             profesor.id_profesor = cursor.lastrowid
@@ -44,23 +44,23 @@ class SQLiteRepositorioProfesor(RepositorioProfesor):
                 sql = """
                     UPDATE TBL_PROFESORES SET 
                     NOMBRE_COMPLETO = ?, CEDULA = ?, ESTADO_ACTIVO = ?, 
-                    PROFESION = ?, FOTO_PATH = ? 
+                    PROFESION = ?, FOTO_PATH = ?, TELEFONO = ? 
                     WHERE ID_PROFESOR = ?
                 """
                 cursor.execute(sql, (
                     profesor.nombre_completo, profesor.cedula, profesor.estado_activo,
-                    profesor.profesion, profesor.foto_path, profesor.id_profesor
+                    profesor.profesion, profesor.foto_path, profesor.telefono, profesor.id_profesor
                 ))
             else:
                 sql = """
                     UPDATE TBL_PROFESORES SET 
                     NOMBRE_COMPLETO = ?, ESTADO_ACTIVO = ?, 
-                    PROFESION = ?, FOTO_PATH = ? 
+                    PROFESION = ?, FOTO_PATH = ?, TELEFONO = ? 
                     WHERE CEDULA = ?
                 """
                 cursor.execute(sql, (
                     profesor.nombre_completo, profesor.estado_activo,
-                    profesor.profesion, profesor.foto_path, profesor.cedula
+                    profesor.profesion, profesor.foto_path, profesor.telefono, profesor.cedula
                 ))
             conn.commit()
             return cursor.rowcount > 0
@@ -92,9 +92,11 @@ class SQLiteRepositorioProfesor(RepositorioProfesor):
         estado = fila[3] if fila[3] is not None else 1
         profesion = fila[4] if len(fila) > 4 and fila[4] is not None else ""
         foto_path = fila[5] if len(fila) > 5 and fila[5] is not None else ""
+        telefono = fila[6] if len(fila) > 6 and fila[6] is not None else ""
         return Profesor(
             cedula=cedula, nombre_completo=nombre, id_profesor=id_prof,
-            estado_activo=estado, profesion=profesion, foto_path=foto_path
+            estado_activo=estado, profesion=profesion, foto_path=foto_path,
+            telefono=telefono
         )
 
     def obtener_todos(self) -> List[Profesor]:
@@ -104,7 +106,7 @@ class SQLiteRepositorioProfesor(RepositorioProfesor):
             try:
                 cursor = conn.cursor()
                 cursor.execute("""
-                    SELECT ID_PROFESOR, NOMBRE_COMPLETO, CEDULA, ESTADO_ACTIVO, PROFESION, FOTO_PATH 
+                    SELECT ID_PROFESOR, NOMBRE_COMPLETO, CEDULA, ESTADO_ACTIVO, PROFESION, FOTO_PATH, TELEFONO 
                     FROM TBL_PROFESORES ORDER BY NOMBRE_COMPLETO
                 """)
                 rows = cursor.fetchall()
@@ -122,7 +124,7 @@ class SQLiteRepositorioProfesor(RepositorioProfesor):
             try:
                 cursor = conn.cursor()
                 cursor.execute("""
-                    SELECT ID_PROFESOR, NOMBRE_COMPLETO, CEDULA, ESTADO_ACTIVO, PROFESION, FOTO_PATH 
+                    SELECT ID_PROFESOR, NOMBRE_COMPLETO, CEDULA, ESTADO_ACTIVO, PROFESION, FOTO_PATH, TELEFONO 
                     FROM TBL_PROFESORES WHERE ESTADO_ACTIVO = 1 ORDER BY NOMBRE_COMPLETO
                 """)
                 rows = cursor.fetchall()
@@ -140,7 +142,7 @@ class SQLiteRepositorioProfesor(RepositorioProfesor):
         try:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT ID_PROFESOR, NOMBRE_COMPLETO, CEDULA, ESTADO_ACTIVO, PROFESION, FOTO_PATH "
+                "SELECT ID_PROFESOR, NOMBRE_COMPLETO, CEDULA, ESTADO_ACTIVO, PROFESION, FOTO_PATH, TELEFONO "
                 "FROM TBL_PROFESORES WHERE ID_PROFESOR = ?",
                 (id_profesor,)
             )
@@ -156,7 +158,7 @@ class SQLiteRepositorioProfesor(RepositorioProfesor):
         try:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT ID_PROFESOR, NOMBRE_COMPLETO, CEDULA, ESTADO_ACTIVO, PROFESION, FOTO_PATH "
+                "SELECT ID_PROFESOR, NOMBRE_COMPLETO, CEDULA, ESTADO_ACTIVO, PROFESION, FOTO_PATH, TELEFONO "
                 "FROM TBL_PROFESORES WHERE CEDULA = ?",
                 (str(cedula).strip().upper(),)
             )

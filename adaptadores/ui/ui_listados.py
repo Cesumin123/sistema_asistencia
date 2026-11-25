@@ -179,14 +179,14 @@ class UIListados:
             crear_boton(
                 f_top, "🖨️ PDF", lambda: self._exportar_tabla_pdf(
                     self.tree_profesores, "NOMINA GENERAL DE PROFESORES",
-                    ["ID", "Cédula", "Nombre Completo"]
+                    ["ID", "Cédula", "Nombre Completo", "Teléfono"]
                 ), COLOR_PELIGRO, COLOR_TEXTO_CLARO, COLOR_PELIGRO_HOVER,
             ).pack(side="right", padx=5)
 
-        cols = ("id_profesor", "cedula", "nombre")
-        enc = ["ID", "Cédula", "Nombre Completo"]
-        anch = [60, 120, 350]
-        anclas = ["center", "center", "w"]
+        cols = ("id_profesor", "cedula", "nombre", "telefono")
+        enc = ["ID", "Cédula", "Nombre Completo", "Teléfono"]
+        anch = [55, 115, 310, 120]
+        anclas = ["center", "center", "w", "center"]
 
         self.tree_profesores, frame_tree = crear_treeview_zebra(tab, cols, enc, anch, anclas)
         frame_tree.pack(fill="both", expand=True)
@@ -197,15 +197,15 @@ class UIListados:
             self.tree_profesores.delete(item)
         self._datos_profesores = self.repo.obtener_profesores_activos()
         for p in self._datos_profesores:
-            insertar_fila_zebra(self.tree_profesores, (p["id_profesor"], p["cedula"], p["nombre"]))
+            insertar_fila_zebra(self.tree_profesores, (p["id_profesor"], p["cedula"], p["nombre"], p.get("telefono", "-")))
 
     def _filtrar_profesores(self):
         termino = self.entry_filtro_profesores.get().strip().lower()
         for item in self.tree_profesores.get_children():
             self.tree_profesores.delete(item)
         for p in self._datos_profesores:
-            if any(termino in str(p.get(k, "")).lower() for k in ("cedula", "nombre")):
-                insertar_fila_zebra(self.tree_profesores, (p["id_profesor"], p["cedula"], p["nombre"]))
+            if any(termino in str(p.get(k, "")).lower() for k in ("cedula", "nombre", "telefono")):
+                insertar_fila_zebra(self.tree_profesores, (p["id_profesor"], p["cedula"], p["nombre"], p.get("telefono", "-")))
 
     # ── EXPORTAR PDF ──
     def _exportar_tabla_pdf(self, tree: ttk.Treeview, titulo: str, encabezados: List[str]):

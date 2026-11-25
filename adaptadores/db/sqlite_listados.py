@@ -106,7 +106,7 @@ class RepositorioListadosSQLite(PuertoRepositorioListados):
         try:
             cursor = conn.cursor()
             sql = """
-                SELECT P.ID_PROFESOR, P.CEDULA, P.NOMBRE_COMPLETO
+                SELECT P.ID_PROFESOR, P.CEDULA, P.NOMBRE_COMPLETO, COALESCE(P.TELEFONO, '')
                 FROM TBL_PROFESORES P
                 WHERE P.ESTADO_ACTIVO = 1
                 ORDER BY P.NOMBRE_COMPLETO ASC
@@ -117,7 +117,8 @@ class RepositorioListadosSQLite(PuertoRepositorioListados):
                 {
                     "id_profesor": fila[0],
                     "cedula": fila[1],
-                    "nombre": fila[2]
+                    "nombre": fila[2],
+                    "telefono": fila[3] if fila[3] else "-",
                 }
                 for fila in filas
             ]

@@ -45,10 +45,10 @@ from adaptadores.db.sqlite_asistencia import RepositorioAsistenciaSQLite
 # =============================================================================
 
 DOCENTES_SEED = [
-    ("V-12456789", "PROF. CARLOS ALBERTO MENDOZA"),
-    ("V-14890123", "PROF. MARIA ELENA CONTRERAS"),
-    ("V-16234567", "PROF. JOSE RAMON GUERRERO"),
-    ("V-18567890", "PROF. ANA BEATRIZ SILVA"),
+    ("V-12456789", "PROF. CARLOS ALBERTO MENDOZA", "0414-5550101"),
+    ("V-14890123", "PROF. MARIA ELENA CONTRERAS", "0424-5550202"),
+    ("V-16234567", "PROF. JOSE RAMON GUERRERO", "0416-5550303"),
+    ("V-18567890", "PROF. ANA BEATRIZ SILVA", "0412-5550404"),
 ]
 
 # (cedula, nombre, fecha_nac, repre, telf, gen, escolaridad, turno, condicion, grado, seccion)
@@ -199,8 +199,8 @@ def poblar_base_de_datos(reset: bool = False):
     profs_insertados = 0
     mapa_profesores_id = {}
 
-    for ced, nom in DOCENTES_SEED:
-        prof = Profesor(cedula=ced, nombre_completo=nom)
+    for ced, nom, tel in DOCENTES_SEED:
+        prof = Profesor(cedula=ced, nombre_completo=nom, telefono=tel)
         try:
             repo_prof.guardar(prof)
             profs_insertados += 1

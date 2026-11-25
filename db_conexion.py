@@ -80,6 +80,8 @@ class ConexionBD:
                     cursor.execute("ALTER TABLE TBL_PROFESORES ADD COLUMN PROFESION TEXT DEFAULT ''")
                 if "FOTO_PATH" not in cols_prof:
                     cursor.execute("ALTER TABLE TBL_PROFESORES ADD COLUMN FOTO_PATH TEXT DEFAULT ''")
+                if "TELEFONO" not in cols_prof:
+                    cursor.execute("ALTER TABLE TBL_PROFESORES ADD COLUMN TELEFONO TEXT DEFAULT ''")
         except Exception as e:
             print(f"Aviso migración esquema profesores: {e}")
 
@@ -160,7 +162,8 @@ class ConexionBD:
                 NOMBRE_COMPLETO TEXT,
                 ESTADO_ACTIVO INTEGER DEFAULT 1,
                 PROFESION TEXT DEFAULT '',
-                FOTO_PATH TEXT DEFAULT ''
+                FOTO_PATH TEXT DEFAULT '',
+                TELEFONO TEXT DEFAULT ''
             )""")
 
         # --- ESTANTE 4: ESTUDIANTES ---

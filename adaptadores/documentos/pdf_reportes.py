@@ -207,11 +207,13 @@ class ExportadorPDFReportLab(PuertoExportadorPDF):
         flow_foto = self._obtener_flowable_foto(getattr(profesor, "foto_path", ""))
         estado_str = "ACTIVO" if getattr(profesor, "estado_activo", 1) == 1 else "INACTIVO"
         profesion_str = getattr(profesor, "profesion", "") or "DOCENTE ORDINARIO"
+        telefono_str = getattr(profesor, "telefono", "") or "No registrado"
 
         datos_personales = [
             [Paragraph("<b>Cédula de Identidad:</b>", estilos['Normal']), Paragraph(str(profesor.cedula), estilos['Normal'])],
             [Paragraph("<b>Nombre Completo:</b>", estilos['Normal']), Paragraph(str(profesor.nombre_completo), estilos['Normal'])],
             [Paragraph("<b>Profesión / Título:</b>", estilos['Normal']), Paragraph(profesion_str, estilos['Normal'])],
+            [Paragraph("<b>Teléfono de Contacto:</b>", estilos['Normal']), Paragraph(telefono_str, estilos['Normal'])],
             [Paragraph("<b>Estatus en el Sistema:</b>", estilos['Normal']), Paragraph(estado_str, estilos['Normal'])],
         ]
         tbl_datos = Table(datos_personales, colWidths=[150, 270])

@@ -6,13 +6,15 @@ class Profesor:
     """
     def __init__(self, cedula: str, nombre_completo: str, 
                  id_profesor: int = None, estado_activo: int = 1,
-                 profesion: str = "", foto_path: str = ""):
+                 profesion: str = "", foto_path: str = "",
+                 telefono: str = ""):
         self.id_profesor = id_profesor
         self.cedula = str(cedula).strip().upper() if cedula is not None else ""
         self.nombre_completo = str(nombre_completo).strip().upper() if nombre_completo is not None else ""
         self.estado_activo = int(estado_activo) if estado_activo is not None else 1
         self.profesion = str(profesion).strip().upper() if profesion is not None else ""
         self.foto_path = str(foto_path).strip() if foto_path is not None else ""
+        self.telefono = str(telefono).strip() if telefono is not None else ""
 
     def validar(self):
         """Reglas de negocio: Cédula y nombre obligatorios y con formato mínimo."""

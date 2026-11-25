@@ -101,6 +101,7 @@ def test_migracion_idempotente_esquema_existente(tmp_path):
     cols_prof = [c[1] for c in cur_mig.fetchall()]
     assert "PROFESION" in cols_prof
     assert "FOTO_PATH" in cols_prof
+    assert "TELEFONO" in cols_prof
 
     # Verificar que existen las columnas en TBL_ESTUDIANTES
     cur_mig.execute("PRAGMA table_info(TBL_ESTUDIANTES)")
@@ -114,11 +115,12 @@ def test_migracion_idempotente_esquema_existente(tmp_path):
     assert "TELEFONO" in cols_est       # Conservada intacta
 
     # Verificar que los registros previos permanecen intactos
-    cur_mig.execute("SELECT NOMBRE_COMPLETO, CEDULA, PROFESION, FOTO_PATH FROM TBL_PROFESORES WHERE CEDULA = 'V-11111111'")
+    cur_mig.execute("SELECT NOMBRE_COMPLETO, CEDULA, PROFESION, FOTO_PATH, TELEFONO FROM TBL_PROFESORES WHERE CEDULA = 'V-11111111'")
     fila_prof = cur_mig.fetchone()
     assert fila_prof[0] == "PROFESOR PREVIO"
     assert fila_prof[2] in ("", None)
     assert fila_prof[3] in ("", None)
+    assert fila_prof[4] in ("", None)
 
     cur_mig.execute("SELECT ID_ESTUDIANTE, NOMBRE, NOMBRE_MADRE, FOTO_PATH FROM TBL_ESTUDIANTES WHERE ID_ESTUDIANTE = 'V-22222222'")
     fila_est = cur_mig.fetchone()
@@ -139,15 +141,16 @@ def test_migracion_idempotente_esquema_existente(tmp_path):
 # ═════════════════════════════════════════════════════════════════════
 
 def test_crud_profesor_con_profesion_y_foto():
-    """Valida guardado, actualización y lectura de Profesor con profesión y foto_path."""
+    """Valida guardado, actualización y lectura de Profesor con profesión libre, teléfono y foto_path."""
     conexion = ConexionBD(":memory:")
     repo = SQLiteRepositorioProfesor(conexion)
 
     prof = Profesor(
         cedula="V-14567890",
         nombre_completo="Carlos Mendoza",
-        profesion="Lcdo. en Matemáticas",
-        foto_path="fotos/profesores/V_14567890.jpg"
+        profesion="Especialista en Física Aplicada",
+        foto_path="fotos/profesores/V_14567890.jpg",
+        telefono="0414-7778899",
     )
     prof.validar()
     assert repo.guardar(prof) is True
@@ -158,17 +161,20 @@ def test_crud_profesor_con_profesion_y_foto():
     assert obtenido is not None
     assert obtenido.cedula == "V-14567890"
     assert obtenido.nombre_completo == "CARLOS MENDOZA"
-    assert obtenido.profesion == "LCDO. EN MATEMÁTICAS"
+    assert obtenido.profesion == "ESPECIALISTA EN FÍSICA APLICADA"
     assert obtenido.foto_path == "fotos/profesores/V_14567890.jpg"
+    assert obtenido.telefono == "0414-7778899"
 
     # Actualizar campos
     prof.profesion = "MSc. en Educación Matemática"
     prof.foto_path = "fotos/profesores/V_14567890_v2.jpg"
+    prof.telefono = "0424-1112233"
     assert repo.actualizar(prof) is True
 
     actualizado = repo.obtener_por_id(prof.id_profesor)
     assert actualizado.profesion == "MSC. EN EDUCACIÓN MATEMÁTICA"
     assert actualizado.foto_path == "fotos/profesores/V_14567890_v2.jpg"
+    assert actualizado.telefono == "0424-1112233"
 
     # Soft delete
     assert repo.eliminar(prof.id_profesor) is True
@@ -294,7 +300,8 @@ def test_generar_ficha_docente_pdf(tmp_path):
         nombre_completo="Ana María Rodríguez",
         id_profesor=1,
         profesion="Lcda. en Castellano y Literatura",
-        foto_path=foto_rel
+        foto_path=foto_rel,
+        telefono="0414-9998877",
     )
 
     materias = [
@@ -313,6 +320,22 @@ def test_generar_ficha_docente_pdf(tmp_path):
     with open(pdf_generado, "rb") as f:
         cabecera = f.read(5)
         assert cabecera.startswith(b"%PDF-")
+
+    # 2. Verificar también generación válida con teléfono vacío ("No registrado")
+    docente_sin_tel = Profesor(
+        cedula="V-15000111",
+        nombre_completo="Docente Sin Teléfono",
+        id_profesor=2,
+        profesion="Profesor",
+        foto_path="",
+        telefono="",
+    )
+    salida_sin_tel = str(tmp_path / "ficha_docente_sin_tel.pdf")
+    pdf_sin_tel = exportador.generar_ficha_docente(docente_sin_tel, [], ruta_salida=salida_sin_tel)
+    assert os.path.exists(pdf_sin_tel)
+    assert os.path.getsize(pdf_sin_tel) > 1000
+    with open(pdf_sin_tel, "rb") as f:
+        assert f.read(5).startswith(b"%PDF-")
 
 
 def test_generar_ficha_estudiante_pdf(tmp_path):
