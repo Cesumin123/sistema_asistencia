@@ -105,7 +105,7 @@ class UIEstadisticas:
             pady=5,
         )
         self.btn_actualizar.pack(side="right")
-        AyudaVisual(self.btn_actualizar, "Recalcular KPIs y gráficos desde la base de datos")
+        AyudaVisual(self.btn_actualizar, "Recalcular gráficos desde la base de datos")
 
         self.btn_exportar_pdf = crear_boton(
             f_header,
@@ -118,7 +118,7 @@ class UIEstadisticas:
             pady=5,
         )
         self.btn_exportar_pdf.pack(side="right", padx=(0, 8))
-        AyudaVisual(self.btn_exportar_pdf, "Exportar reporte institucional de estadísticas en PDF")
+        AyudaVisual(self.btn_exportar_pdf, "Exportar reporte  estadístico en PDF")
 
         # Contenedor principal
         cuerpo = tk.Frame(self.root, bg=COLOR_FONDO_APP, padx=12, pady=8)

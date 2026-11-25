@@ -207,7 +207,7 @@ class GestorProfesoresUI:
             COLOR_PRIMARIO, COLOR_TEXTO_CLARO, padx=6, pady=5,
         )
         self.btn_cargar_foto.grid(row=0, column=0, sticky="ew", padx=(0, 2))
-        AyudaVisual(self.btn_cargar_foto, "Cargar fotografía oficial del docente (JPEG 240x240)")
+        AyudaVisual(self.btn_cargar_foto, "Cargar fotografía oficial del docente")
 
         self.btn_quitar_foto = crear_boton(
             f_foto_btns, "✖ Quitar", self.quitar_foto_click,

@@ -159,7 +159,7 @@ class SelectorClaseUI:
         )
         self.cal_fecha.pack(anchor="w", pady=(4, 20))
 
-        crear_boton(tarjeta, "COMENZAR CLASE  ▶", self._on_comenzar, COLOR_ACENTO, COLOR_TEXTO_CLARO, COLOR_ACENTO_HOVER).pack(fill="x", ipady=4)
+        crear_boton(tarjeta, "COMENZAR TOMA DE ASISTENCIA", self._on_comenzar, COLOR_ACENTO, COLOR_TEXTO_CLARO, COLOR_ACENTO_HOVER).pack(fill="x", ipady=4)
         self.root.mainloop()
 
     def _on_comenzar(self):

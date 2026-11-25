@@ -439,7 +439,7 @@ class VentanaLogin:
         )
         btn_restablecer.config(state="disabled", bg="#BDC3C7", cursor="arrow")
         btn_restablecer.pack(fill="x", ipady=4)
-        AyudaVisual(btn_restablecer, "Guardar nueva contraseña cifrada con PBKDF2 y registrar auditoría")
+        AyudaVisual(btn_restablecer, "Guardar nueva contraseña y registrar auditoría")
 
         self._modal_recuperacion = {
             "win": win,

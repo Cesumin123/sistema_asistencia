@@ -40,7 +40,7 @@ class UIListados:
             except Exception:
                 self.root = tk.Tk()
 
-        self.root.title("Listados y Consolidados Institucionales")
+        self.root.title("Listados Institucionales del Liceo")
         self.root.config(bg=COLOR_FONDO_APP)
         centrar_ventana(self.root, 980, 660)
         maximizar_ventana(self.root)
@@ -55,7 +55,7 @@ class UIListados:
         # Encabezado
         f_header = tk.Frame(self.root, bg=COLOR_PRIMARIO, pady=10)
         f_header.pack(fill="x")
-        tk.Label(f_header, text="📑  LISTADOS Y CONSOLIDADOS INSTITUCIONALES", font=FUENTE_ENCABEZADO, fg=COLOR_TEXTO_CLARO, bg=COLOR_PRIMARIO).pack()
+        tk.Label(f_header, text="📑  LISTADOS  INSTITUCIONALES", font=FUENTE_ENCABEZADO, fg=COLOR_TEXTO_CLARO, bg=COLOR_PRIMARIO).pack()
 
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill="both", expand=True, padx=12, pady=10)
