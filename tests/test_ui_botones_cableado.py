@@ -5,6 +5,7 @@ Valida que ninguna acción de botón lance TypeError, AttributeError, NameError,
 Usa SQLite :memory:, tmp_path, tk.Tk(withdraw) y mocks completos de diálogos.
 """
 
+import gc
 import os
 import tkinter as tk
 from tkinter import ttk
@@ -58,19 +59,50 @@ from dominio.permisos import (
 # FIXTURES DE ENTORNO
 # ═════════════════════════════════════════════════════════════════════
 
+def _liberar_y_destruir_tk(root):
+    """Suelta referencias a PhotoImage y fuerza GC antes de destruir el intérprete Tcl."""
+    def _limpiar_widgets(w):
+        try:
+            for ch in list(w.winfo_children()):
+                _limpiar_widgets(ch)
+        except Exception:
+            pass
+        for attr in ("image", "_foto_preview_ref", "preview_foto_tk", "img_logo_tk", "logo_tk"):
+            if hasattr(w, attr):
+                try:
+                    setattr(w, attr, None)
+                except Exception:
+                    pass
+        try:
+            w.configure(image="")
+        except Exception:
+            pass
+
+    try:
+        if root and root.winfo_exists():
+            _limpiar_widgets(root)
+            root.update_idletasks()
+    except Exception:
+        pass
+    gc.collect()
+    try:
+        if root and root.winfo_exists():
+            root.destroy()
+    except Exception:
+        pass
+    gc.collect()
+
+
 @pytest.fixture
 def tk_app():
-    """Provee una raíz Tkinter oculta garantizando su destrucción al finalizar."""
+    """Provee una raíz Tkinter oculta garantizando su destrucción segura al finalizar."""
     try:
         root = tk.Tk()
         root.withdraw()
     except tk.TclError:
         pytest.skip("Entorno gráfico Tkinter no disponible.")
     yield root
-    try:
-        root.destroy()
-    except Exception:
-        pass
+    _liberar_y_destruir_tk(root)
 
 
 @pytest.fixture
@@ -228,16 +260,22 @@ def test_ui_menu_principal_botones_modulos_y_logout(tk_app, mocks_dialogos):
 
     # Rol ADMIN: Todos los módulos autorizados
     usr_admin = Usuario(id_usuario=1, username="admin", password="hash_password", rol="ADMIN", nombre_completo="Admin General")
-    menu_admin = MenuPrincipalUI(usr_admin, callbacks, on_logout=cb_logout, root=tk_app)
+    win_menu = tk.Toplevel(tk_app)
+    menu_admin = MenuPrincipalUI(usr_admin, callbacks, on_logout=cb_logout, root=win_menu)
 
     # Simular clic en los 8 callbacks vinculados
     for mod_id, mock_cb in callbacks.items():
         mock_cb()
         assert mock_cb.call_count == 1
 
+    # Soltar PhotoImage antes de cerrar sesión (previene segfault PIL._imagingtk)
+    menu_admin.logo_tk = None
+    gc.collect()
+
     # Botón Cerrar Sesión
     menu_admin.cerrar_sesion()
     assert cb_logout.call_count == 1
+    gc.collect()
 
     # Rol DOCENTE: no debe tener acceso a Estadísticas, Promoción ni Usuarios
     from dominio.permisos import tiene_permiso
@@ -353,6 +391,13 @@ def test_ui_profesor_todos_los_botones(tk_app, db_entorno, tmp_path, mocks_dialo
     assert ui.entry_nom_prof.get() == ""
     assert ui.entry_profesion.get() == ""
     assert ui.entry_telefono_prof.get() == ""
+
+    ui.img_logo_tk = None
+    ui._foto_preview_ref = None
+    ui.preview_foto_tk = None
+    ui.lbl_foto.image = None
+    win.destroy()
+    gc.collect()
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -502,6 +547,12 @@ def test_ui_estudiante_todos_los_botones(tk_app, db_entorno, tmp_path, mocks_dia
     mocks_dialogos["askyesno"].return_value = True
     ui.eliminar_estudiante()
     assert repo_est.obtener_por_cedula("V-32555666") is None
+
+    ui._foto_preview_ref = None
+    ui.preview_foto_tk = None
+    ui.lbl_foto.image = None
+    ui.root.destroy()
+    gc.collect()
 
 
 # ═════════════════════════════════════════════════════════════════════

@@ -101,7 +101,7 @@ class GestorProfesoresUI:
                 nuevo_w = int(img_orig.width * ratio)
                 nuevo_h = int(img_orig.height * ratio)
                 img_redim = img_orig.resize((nuevo_w, nuevo_h), Image.Resampling.LANCZOS)
-                self.img_logo_tk = ImageTk.PhotoImage(img_redim)
+                self.img_logo_tk = ImageTk.PhotoImage(img_redim, master=f_header)
                 tk.Label(f_header, image=self.img_logo_tk, bg=COLOR_TARJETA).pack(side="left", padx=(0, 10))
             except Exception:
                 pass

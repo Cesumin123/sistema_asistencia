@@ -277,7 +277,7 @@ class MenuPrincipalUI:
                 nuevo_w = int(img_orig.width * ratio)
                 nuevo_h = int(img_orig.height * ratio)
                 img_redim = img_orig.resize((nuevo_w, nuevo_h), Image.Resampling.LANCZOS)
-                self.logo_tk = ImageTk.PhotoImage(img_redim)
+                self.logo_tk = ImageTk.PhotoImage(img_redim, master=contenedor)
                 tk.Label(
                     contenedor, image=self.logo_tk, bg=COLOR_SIDEBAR,
                 ).pack(pady=(25, 0))

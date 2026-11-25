@@ -41,7 +41,25 @@ jobs:
           Compress-Archive -Path "dist\ColinasDelLlano_Windows" -DestinationPath "dist\ColinasDelLlano_Windows_Portable.zip" -Force
 
       - name: Compilar Instalador Inno Setup 6
-        run: iscc empaquetado/instalar_windows.iss
+        shell: powershell
+        run: |
+          $iscc = Get-Command iscc -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
+          if (-not $iscc) {
+            $candidatos = @(
+              "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
+              "C:\Program Files\Inno Setup 6\ISCC.exe"
+            )
+            $iscc = $candidatos | Where-Object { Test-Path $_ } | Select-Object -First 1
+          }
+          if (-not $iscc) {
+            Write-Error "No se encontró ISCC.exe de Inno Setup 6 en PATH ni en Program Files."
+            exit 1
+          }
+          & $iscc empaquetado\instalar_windows.iss
+          if (-not (Test-Path "dist\Instalar_ColinasDelLlano_Windows.exe")) {
+            Write-Error "No se generó dist\Instalar_ColinasDelLlano_Windows.exe"
+            exit 1
+          }
 
       - name: Subir Artifact Portable USB Windows
         uses: actions/upload-artifact@v4
@@ -62,10 +80,10 @@ jobs:
       - name: Descargar repositorio
         uses: actions/checkout@v4
 
-      - name: Instalar python3-tk y xvfb
+      - name: Instalar librerías gráficas base y Xvfb
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-tk xvfb
+          sudo apt-get install -y xvfb python3-tk libtk8.6 libtcl8.6 libx11-6 libxrender1
 
       - name: Configurar Python 3.12
         uses: actions/setup-python@v5
@@ -79,7 +97,7 @@ jobs:
           .venv/bin/pip install -r requirements.txt pytest pyinstaller
 
       - name: Ejecutar pruebas unitarias y guardrails con Xvfb
-        run: xvfb-run -a .venv/bin/pytest -v
+        run: xvfb-run -a -s "-screen 0 1280x1024x24 -ac +extension RENDER" .venv/bin/python -X faulthandler -m pytest -v
 
       - name: Construir paquete Linux Mint (--onedir + .tar.gz)
         run: |

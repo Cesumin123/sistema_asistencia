@@ -9,6 +9,7 @@ Cubre:
 """
 
 import ast
+import gc
 import glob
 import os
 import tkinter as tk
@@ -33,16 +34,47 @@ from adaptadores.ui.utilidades_ui import (
 )
 
 
+def _liberar_y_destruir_tk(root):
+    """Suelta referencias a PhotoImage y fuerza GC antes de destruir el intérprete Tcl."""
+    def _limpiar_widgets(w):
+        try:
+            for ch in list(w.winfo_children()):
+                _limpiar_widgets(ch)
+        except Exception:
+            pass
+        for attr in ("image", "_foto_preview_ref", "preview_foto_tk", "img_logo_tk", "logo_tk"):
+            if hasattr(w, attr):
+                try:
+                    setattr(w, attr, None)
+                except Exception:
+                    pass
+        try:
+            w.configure(image="")
+        except Exception:
+            pass
+
+    try:
+        if root and root.winfo_exists():
+            _limpiar_widgets(root)
+            root.update_idletasks()
+    except Exception:
+        pass
+    gc.collect()
+    try:
+        if root and root.winfo_exists():
+            root.destroy()
+    except Exception:
+        pass
+    gc.collect()
+
+
 @pytest.fixture
 def tk_root():
-    """Crea una raíz Tkinter oculta para pruebas de UI y garantiza su destrucción."""
+    """Crea una raíz Tkinter oculta para pruebas de UI y garantiza su destrucción segura."""
     root = tk.Tk()
     root.withdraw()
     yield root
-    try:
-        root.destroy()
-    except Exception:
-        pass
+    _liberar_y_destruir_tk(root)
 
 
 @pytest.fixture
@@ -217,6 +249,12 @@ def test_ui_profesor_botonera_2x2_tooltips_y_subtitulo(tk_root, db_mem, tmp_path
     assert hasattr(ui, "btn_cargar_foto")
     assert hasattr(ui, "btn_quitar_foto")
 
+    ui.img_logo_tk = None
+    ui._foto_preview_ref = None
+    ui.preview_foto_tk = None
+    win.destroy()
+    gc.collect()
+
 
 # ═════════════════════════════════════════════════════════════════════
 # TEST 4: RENDERIZADO DE FOTO EN CONTENEDOR 110X110 Y RETENCIÓN PHOTOIMAGE
@@ -310,6 +348,18 @@ def test_renderizado_foto_preview_en_ui_profesor_y_estudiante(tk_root, db_mem, t
     assert ui_est.lbl_foto.image is None
     assert ui_est._foto_preview_ref is None
 
+    # Liberar referencias PhotoImage antes de destruir Tcl (previene segfault PIL._imagingtk en Xvfb)
+    ui_prof.img_logo_tk = None
+    ui_prof._foto_preview_ref = None
+    ui_prof.preview_foto_tk = None
+    ui_prof.lbl_foto.image = None
+    ui_est._foto_preview_ref = None
+    ui_est.preview_foto_tk = None
+    ui_est.lbl_foto.image = None
+    win_prof.destroy()
+    ui_est.root.destroy()
+    gc.collect()
+
 
 # ═════════════════════════════════════════════════════════════════════
 # TEST 5: MAXIMIZACIÓN MULTIPLATAFORMA DEFENSIVA POST-LOGIN
@@ -333,9 +383,9 @@ def test_maximizar_ventana_tk_y_toplevel_sin_tclerror(tk_root):
     configurar_ventana_hija(hija, win, es_modal=False)
     hija.resizable(False, False)
 
-    # Verificar que si attributes('-zoomed', True) funciona, NO sobrescribe geometry
+    # Verificar que si attributes('-zoomed', True) funciona (ej. Linux/X11), NO sobrescribe geometry
     with patch.object(hija, "state", side_effect=tk.TclError("no zoomed")):
-        with patch.object(hija, "attributes", wraps=hija.attributes) as spy_attr, \
+        with patch.object(hija, "attributes", return_value=None) as spy_attr, \
              patch.object(hija, "geometry", wraps=hija.geometry) as spy_geom:
             maximizar_ventana(hija)
             hija.update_idletasks()
