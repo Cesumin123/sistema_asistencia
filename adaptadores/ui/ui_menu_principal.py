@@ -29,8 +29,9 @@ from adaptadores.ui.utilidades_ui import (
     FUENTE_TITULO, FUENTE_SUBTITULO, FUENTE_ENCABEZADO,
     FUENTE_CUERPO, FUENTE_CUERPO_BOLD, FUENTE_BOTON,
     FUENTE_PEQUEÑA, FUENTE_PEQUEÑA_BOLD,
-    crear_boton, crear_tarjeta, crear_separador,
+    crear_boton, crear_tarjeta, crear_separador, AyudaVisual,
 )
+from adaptadores.ui.ui_acerca_de import ModalAcercaDe
 
 
 def resolver_ruta_recurso(nombre_archivo: str) -> str:
@@ -127,6 +128,7 @@ class MenuPrincipalUI:
         maximizar_ventana(self.root)
 
         self.logo_tk = None
+        self._modal_acerca_de: Optional[ModalAcercaDe] = None
         self._crear_interfaz()
 
     # ──────────────────────────────────────────────────────────
@@ -175,11 +177,21 @@ class MenuPrincipalUI:
         # Spacer flexible
         tk.Frame(sidebar, bg=COLOR_SIDEBAR).pack(expand=True, fill="both")
 
+        # Botón Acerca de (habilitado para todos los roles)
+        self.btn_acerca_de = crear_boton(
+            sidebar, texto="ℹ  Acerca de", comando=self.abrir_acerca_de,
+            color_bg=COLOR_SIDEBAR_HEADER, color_hover=COLOR_SECUNDARIO,
+            pady=6,
+        )
+        self.btn_acerca_de.pack(fill="x", padx=20, pady=(0, 8), ipady=2)
+        AyudaVisual(self.btn_acerca_de, "Créditos del equipo, licencia y avisos legales")
+
         # Botón Cerrar Sesión (anclado abajo)
-        crear_boton(
+        self.btn_cerrar_sesion = crear_boton(
             sidebar, texto="🚪  Cerrar Sesión", comando=self.cerrar_sesion,
             color_bg="#95A5A6", color_hover="#7F8C8D",
-        ).pack(fill="x", padx=20, pady=(0, 20), ipady=4)
+        )
+        self.btn_cerrar_sesion.pack(fill="x", padx=20, pady=(0, 20), ipady=4)
 
         # ═══ PANEL PRINCIPAL DERECHO ═══
         panel_principal = tk.Frame(self.root, bg=COLOR_FONDO_APP, padx=30, pady=20)
@@ -291,8 +303,22 @@ class MenuPrincipalUI:
             fg=COLOR_TEXTO_CLARO, bg=COLOR_SIDEBAR,
         ).pack(pady=(30, 0))
 
+    def abrir_acerca_de(self):
+        """Abre el modal compacto 'Acerca de...' evitando ventanas duplicadas."""
+        if self._modal_acerca_de is not None and self._modal_acerca_de.esta_abierto():
+            self._modal_acerca_de.enfocar()
+            return self._modal_acerca_de
+
+        self._modal_acerca_de = ModalAcercaDe(
+            parent=self.root,
+            on_cerrar=lambda: setattr(self, "_modal_acerca_de", None),
+        )
+        return self._modal_acerca_de
+
     def cerrar_sesion(self):
         """Cierra el panel de control y regresa al login."""
+        if self._modal_acerca_de is not None and self._modal_acerca_de.esta_abierto():
+            self._modal_acerca_de.cerrar()
         self.root.destroy()
         if self.on_logout:
             self.on_logout()

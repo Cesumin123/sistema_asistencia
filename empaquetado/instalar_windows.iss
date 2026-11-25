@@ -4,7 +4,8 @@
 [Setup]
 AppName=Sistema de Asistencia Colinas del Llano
 AppVersion=1.0.0
-AppPublisher=Complejo Educativo Colinas del Llano
+AppPublisher=César Meléndez — melendezcesar122@gmail.com — +58 414-5446824
+LicenseFile=..\LICENSE
 DefaultDirName={userdocs}\Sistema_Asistencia_Colinas
 DefaultGroupName=Sistema de Asistencia Colinas del Llano
 DisableProgramGroupPage=yes

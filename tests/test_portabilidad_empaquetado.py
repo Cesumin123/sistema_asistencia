@@ -115,6 +115,8 @@ def test_validacion_estatica_archivos_empaquetado_gitignore_y_workflow():
     archivos_requeridos = [
         RAIZ_PROYECTO / "rutas_app.py",
         RAIZ_PROYECTO / "LOGOLICEO.png",
+        RAIZ_PROYECTO / "LICENSE",
+        RAIZ_PROYECTO / "THIRD_PARTY_NOTICES.txt",
         RAIZ_PROYECTO / "construir_windows.bat",
         RAIZ_PROYECTO / "construir_linux.sh",
         RAIZ_PROYECTO / "empaquetado" / "generar_icono.py",
@@ -126,6 +128,11 @@ def test_validacion_estatica_archivos_empaquetado_gitignore_y_workflow():
     ]
     for archivo in archivos_requeridos:
         assert archivo.exists(), f"Archivo requerido no existe: {archivo}"
+
+    # Verificar existencia de foto_equipo.* en la raíz (< 300 KB)
+    fotos_equipo = list(RAIZ_PROYECTO.glob("foto_equipo.*"))
+    assert len(fotos_equipo) >= 1, "Debe existir foto_equipo.jpg o foto_equipo.png en la raíz"
+    assert fotos_equipo[0].stat().st_size <= 300 * 1024
 
     # 3. Permisos de ejecución en scripts Linux
     assert os.access(RAIZ_PROYECTO / "construir_linux.sh", os.X_OK)
@@ -142,6 +149,9 @@ def test_validacion_estatica_archivos_empaquetado_gitignore_y_workflow():
         assert "console=False" in contenido_spec
         assert "upx=False" in contenido_spec
         assert "LOGOLICEO.png" in contenido_spec
+        assert "LICENSE" in contenido_spec
+        assert "THIRD_PARTY_NOTICES.txt" in contenido_spec
+        assert "foto_equipo." in contenido_spec
         assert "babel.numbers" in contenido_spec
         assert "PIL._tkinter_finder" in contenido_spec
         assert "tkcalendar" in contenido_spec
@@ -157,6 +167,11 @@ def test_validacion_estatica_archivos_empaquetado_gitignore_y_workflow():
     assert "sistema_escolar.db" in iss
     assert "memoria_emergencia.json" in iss
     assert r"{autodesktop}" in iss
+    assert r"LicenseFile=..\LICENSE" in iss
+    assert "AppPublisher=" in iss
+    assert "+58 414-5446824" in iss
+    assert "AppPublisherURL" not in iss
+    assert "github.com" not in iss
 
     # 6. Script Linux Mint
     mint_sh = (RAIZ_PROYECTO / "empaquetado" / "Instalar_en_Mint.sh").read_text(encoding="utf-8")
@@ -176,3 +191,33 @@ def test_validacion_estatica_archivos_empaquetado_gitignore_y_workflow():
     assert "ColinasDelLlano_Windows_Portable.zip" in wf
     assert "Instalar_ColinasDelLlano_Windows.exe" in wf
     assert "ColinasDelLlano_LinuxMint.tar.gz" in wf
+
+
+def test_documentos_legales_y_pureza_ast_dominio_acerca_de():
+    """Valida contenido de LICENSE, THIRD_PARTY_NOTICES.txt y pureza AST de dominio/acerca_de.py."""
+    licencia = (RAIZ_PROYECTO / "LICENSE").read_text(encoding="utf-8")
+    assert "GNU GENERAL PUBLIC LICENSE" in licencia
+    assert "Version 3" in licencia
+    assert "2026" in licencia
+    assert "César Meléndez" in licencia
+    assert "melendezcesar122@gmail.com" in licencia
+    assert "+58 414-5446824" in licencia
+    assert "github.com" not in licencia
+
+    notices = (RAIZ_PROYECTO / "THIRD_PARTY_NOTICES.txt").read_text(encoding="utf-8")
+    for comp in ("Python", "Tcl/Tk", "SQLite", "tkcalendar", "ReportLab", "Pillow", "Babel"):
+        assert comp in notices, f"Falta componente '{comp}' en THIRD_PARTY_NOTICES.txt"
+
+    ruta_acerca = RAIZ_PROYECTO / "dominio" / "acerca_de.py"
+    assert ruta_acerca.exists()
+    arbol = ast.parse(ruta_acerca.read_text(encoding="utf-8"), filename=str(ruta_acerca))
+    importados = set()
+    for nodo in ast.walk(arbol):
+        if isinstance(nodo, ast.Import):
+            for alias in nodo.names:
+                importados.add(alias.name.split(".")[0])
+        elif isinstance(nodo, ast.ImportFrom) and nodo.module:
+            importados.add(nodo.module.split(".")[0])
+
+    prohibidos = {"sqlite3", "tkinter", "tkcalendar", "reportlab", "adaptadores", "db_conexion", "PIL", "rutas_app"}
+    assert not (importados & prohibidos), f"Imports prohibidos en dominio/acerca_de.py: {importados & prohibidos}"

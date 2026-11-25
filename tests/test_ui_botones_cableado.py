@@ -1025,3 +1025,115 @@ def test_ui_estadisticas_botones_y_canvas_renderizado(tk_app, db_entorno, tmp_pa
     ui.btn_volver.invoke()
     ui.root.update_idletasks()
     assert not ui.root.winfo_exists()
+
+
+# ═════════════════════════════════════════════════════════════════════
+# 12. MODAL ACERCA DE DESDE DASHBOARD (TODOS LOS ROLES, FOTO, ESCAPE)
+# ═════════════════════════════════════════════════════════════════════
+
+def test_ui_menu_principal_boton_acerca_de_y_modal(tk_app, tmp_path):
+    """
+    Verifica botón 'ℹ Acerca de' en MenuPrincipalUI y el modal ModalAcercaDe:
+    - Habilitado y visible en 1024x700 para ADMIN, ASISTENTE y DOCENTE.
+    - Muestra integrantes, contacto técnico, licencia GPLv3, aviso LOPNNA y terceros.
+    - Renderiza fotografía del equipo (foto_equipo.jpg) y soporta fallback si falta.
+    - Bloquea ventanas duplicadas y cierra limpio con <Escape> sin destruir Dashboard.
+    """
+    from dominio.acerca_de import EQUIPO_DESARROLLADOR, CONTACTO_TECNICO, LICENCIA_NOMBRE, TELEFONO_SOPORTE
+
+    # 1. Habilitado en los 3 roles y visible dentro de 1024x700
+    for rol in ("ADMIN", "ASISTENTE", "DOCENTE"):
+        usr = Usuario(id_usuario=10, username=f"usr_{rol.lower()}", password="h", rol=rol, nombre_completo=f"Usuario {rol}")
+        win = tk.Toplevel(tk_app)
+        win.geometry("1024x700+0+0")
+        menu = MenuPrincipalUI(usr, {}, root=win)
+        win.update()
+        assert hasattr(menu, "btn_acerca_de")
+        assert str(menu.btn_acerca_de.cget("state")) == "normal"
+        assert menu.btn_acerca_de.winfo_ismapped()
+        y_rel = menu.btn_acerca_de.winfo_rooty() - win.winfo_rooty()
+        assert y_rel + menu.btn_acerca_de.winfo_height() <= 700
+        menu.logo_tk = None
+        win.destroy()
+
+    # 2. Apertura desde Dashboard, contenido, foto y bloqueo de duplicados
+    usr_doc = Usuario(id_usuario=2, username="doc", password="h", rol="DOCENTE", nombre_completo="Docente Test")
+    win_menu = tk.Toplevel(tk_app)
+    win_menu.geometry("1024x700+0+0")
+    menu_doc = MenuPrincipalUI(usr_doc, {}, root=win_menu)
+    win_menu.update()
+
+    menu_doc.btn_acerca_de.invoke()
+    modal_1 = menu_doc._modal_acerca_de
+    assert modal_1 is not None and modal_1.esta_abierto()
+    modal_1.win.update()
+
+    assert modal_1.win.resizable() == (False, False)
+    assert modal_1.win.winfo_width() <= 560
+    assert modal_1.win.winfo_height() <= 640
+    assert modal_1.btn_cerrar is not None
+    assert modal_1.btn_cerrar.winfo_ismapped()
+    y_cerrar = modal_1.btn_cerrar.winfo_rooty() - modal_1.win.winfo_rooty()
+    assert y_cerrar + modal_1.btn_cerrar.winfo_height() <= modal_1.win.winfo_height()
+    assert modal_1.scroll_licencias is not None and modal_1.scroll_licencias.winfo_ismapped()
+    assert modal_1.txt_licencias.winfo_height() >= 90
+    assert modal_1.txt_licencias.dlineinfo("5.0") is not None
+
+    # Recolectar textos de etiquetas y cuadro de licencias
+    textos_labels = []
+
+    def _recolectar(w):
+        for ch in w.winfo_children():
+            if isinstance(ch, tk.Label):
+                textos_labels.append(ch.cget("text"))
+            _recolectar(ch)
+
+    _recolectar(modal_1.win)
+    texto_unido = "\n".join(textos_labels)
+    for integrante in EQUIPO_DESARROLLADOR:
+        assert integrante in texto_unido
+    assert CONTACTO_TECNICO in texto_unido
+    assert TELEFONO_SOPORTE in texto_unido
+    assert "+58 414-5446824" in texto_unido
+    assert "github.com" not in texto_unido.lower()
+    assert LICENCIA_NOMBRE in texto_unido
+    assert "LOPNNA" in texto_unido
+
+    assert str(modal_1.txt_licencias.cget("state")) == "disabled"
+    contenido_terceros = modal_1.txt_licencias.get("1.0", tk.END)
+    assert "+58 414-5446824" in contenido_terceros
+    assert "github.com" not in contenido_terceros.lower()
+    assert "Art. 109" in contenido_terceros
+    assert "LOPNNA" in contenido_terceros
+    assert "Ley de Infogobierno" in contenido_terceros
+    assert "tkcalendar" in contenido_terceros
+    assert "ReportLab" in contenido_terceros
+    assert "Pillow" in contenido_terceros
+
+    # Fotografía del equipo cargada con referencia viva
+    assert modal_1._foto_equipo_tk is not None
+    assert modal_1.lbl_foto.image is modal_1._foto_equipo_tk
+
+    # Bloqueo de duplicados al pulsar de nuevo
+    menu_doc.btn_acerca_de.invoke()
+    assert menu_doc._modal_acerca_de is modal_1
+
+    # Cierre limpio con <Escape> sin destruir el Dashboard
+    modal_1.win.event_generate("<Escape>")
+    win_menu.update()
+    assert not modal_1.esta_abierto()
+    assert menu_doc._modal_acerca_de is None
+    assert win_menu.winfo_exists()
+
+    # 3. Fallback silencioso si no existe archivo de foto del equipo
+    from adaptadores.ui.ui_acerca_de import ModalAcercaDe
+    with patch("adaptadores.ui.ui_acerca_de.obtener_ruta_recurso", return_value=str(tmp_path / "inexistente.jpg")):
+        modal_fb = ModalAcercaDe(parent=win_menu)
+        modal_fb.win.update()
+        assert modal_fb._foto_equipo_tk is None
+        assert "Fotografía del Equipo" in modal_fb.lbl_foto.cget("text")
+        modal_fb.cerrar()
+
+    menu_doc.logo_tk = None
+    win_menu.destroy()
+    gc.collect()

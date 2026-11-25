@@ -1,0 +1,93 @@
+THIRD-PARTY SOFTWARE NOTICES AND INFORMATION
+=============================================
+
+Sistema de Información para la Gestión de Asistencia Estudiantil
+Complejo Educativo "Colinas del Llano" — Barinas, Venezuela
+Versión 1.0.0 (2026)
+
+Este software incorpora y/o se empaqueta junto con los siguientes componentes de
+terceros. Cada componente conserva los avisos de derechos de autor y términos
+de su respectiva licencia, todos compatibles con GNU GPLv3:
+
+--------------------------------------------------------------------------------
+1. Python (Biblioteca Estándar e Intérprete CPython 3.12)
+--------------------------------------------------------------------------------
+- Licencia: Python Software Foundation License Version 2 (PSF-2.0)
+- Sitio web: https://www.python.org/
+- Copyright (c) 2001-2026 Python Software Foundation. All rights reserved.
+- Uso en el sistema: Entorno de ejecución principal y módulos estándar
+  (os, sys, hashlib, json, sqlite3, tkinter, abc, datetime, dataclasses).
+
+--------------------------------------------------------------------------------
+2. Tcl/Tk 8.6 (tkinter / ttk)
+--------------------------------------------------------------------------------
+- Licencia: Tcl/Tk License (BSD-style permissive license)
+- Sitio web: https://www.tcl-lang.org/
+- Copyright (c) Regents of the University of California, Sun Microsystems, Inc.,
+  Scriptics Corporation, and other parties.
+- Uso en el sistema: Interfaz gráfica de escritorio (Tkinter/Ttk) y gráficos
+  estadísticos nativos en tk.Canvas.
+
+--------------------------------------------------------------------------------
+3. SQLite 3
+--------------------------------------------------------------------------------
+- Licencia: Dominio Público (Public Domain)
+- Sitio web: https://www.sqlite.org/
+- Uso en el sistema: Motor de base de datos relacional embebido offline-first
+  (archivo local sistema_escolar.db con soporte WAL y claves foráneas).
+
+--------------------------------------------------------------------------------
+4. tkcalendar (v1.6.1)
+--------------------------------------------------------------------------------
+- Licencia: GNU General Public License v3.0 (GPLv3)
+- Repositorio: https://github.com/j4321/tkcalendar
+- Copyright (c) 2017-2021 Juliette Monsel.
+- Uso en el sistema: Selector de fechas calendario (DateEntry) en módulos de
+  estudiantes, asistencia y reportes.
+- Nota de cumplimiento: El uso combinado de tkcalendar bajo GPLv3 determina que
+  el paquete distribuido completo del sistema se distribuya bajo GNU GPLv3.
+
+--------------------------------------------------------------------------------
+5. ReportLab (v4.4.10)
+--------------------------------------------------------------------------------
+- Licencia: BSD License (BSD 3-Clause)
+- Sitio web: https://www.reportlab.com/
+- Copyright (c) 2000-2025, ReportLab Inc. All rights reserved.
+- Componentes tipográficos incluidos en ReportLab:
+  * Bitstream Vera Fonts (Bitstream Vera License)
+  * DarkGarden Fonts (GNU GPLv2, Copyright 1999-2004 Michal Kosmulski)
+- Uso en el sistema: Generación de fichas y reportes oficiales en formato PDF
+  mediante reportlab.platypus.
+
+--------------------------------------------------------------------------------
+6. Pillow (v12.1.1)
+--------------------------------------------------------------------------------
+- Licencia: MIT-CMU License (Historical Permission Notice and Disclaimer / PIL)
+- Sitio web: https://python-pillow.org/
+- Copyright (c) 1997-2011 Secret Labs AB; (c) 1995-2011 Fredrik Lundh and
+  contributors; (c) 2010-2026 Jeffrey A. Clark and contributors.
+- Uso en el sistema: Optimización, redimensionado y visualización de fotografías
+  institucionales, del equipo desarrollador, docentes y estudiantes.
+
+--------------------------------------------------------------------------------
+7. Babel (v2.18.0)
+--------------------------------------------------------------------------------
+- Licencia: BSD-3-Clause License
+- Datos de localización CLDR: Unicode License v3 (Copyright 2004-2025 Unicode, Inc.)
+- Sitio web: https://babel.pocoo.org/
+- Copyright (c) 2013-2026 by the Babel Team.
+- Uso en el sistema: Soporte de localización de fechas requerido por tkcalendar.
+
+--------------------------------------------------------------------------------
+8. charset-normalizer (v3.4.6)
+--------------------------------------------------------------------------------
+- Licencia: MIT License
+- Copyright (c) 2025 TAHRI Ahmed R.
+- Uso en el sistema: Dependencia transitiva presente en el entorno virtual.
+
+--------------------------------------------------------------------------------
+9. Herramientas de Desarrollo y Pruebas (NO distribuidas en el binario final)
+--------------------------------------------------------------------------------
+- pytest (v9.2.0): MIT License. Excluida expresamente en windows.spec y linux.spec.
+- PyInstaller: GPLv2 with Bootloader Exception (herramienta de compilación).
+- Inno Setup 6: Inno Setup License (herramienta de instalación Windows).

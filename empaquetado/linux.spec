@@ -11,6 +11,19 @@ from PyInstaller.utils.hooks import collect_submodules
 SPEC_DIR = os.path.abspath(SPECPATH)
 ROOT_DIR = os.path.abspath(os.path.join(SPEC_DIR, ".."))
 LOGO_PATH = os.path.join(ROOT_DIR, "LOGOLICEO.png")
+LICENSE_PATH = os.path.join(ROOT_DIR, "LICENSE")
+NOTICES_PATH = os.path.join(ROOT_DIR, "THIRD_PARTY_NOTICES.txt")
+
+datas_empaquetado = [(LOGO_PATH, ".")]
+for _archivo_legal in (LICENSE_PATH, NOTICES_PATH):
+    if os.path.exists(_archivo_legal):
+        datas_empaquetado.append((_archivo_legal, "."))
+
+for _nombre_foto in ("foto_equipo.jpg", "foto_equipo.png", "foto_equipo.jpeg", "nosotros.jpeg", "nosotros.jpg"):
+    _ruta_foto = os.path.join(ROOT_DIR, _nombre_foto)
+    if os.path.exists(_ruta_foto):
+        datas_empaquetado.append((_ruta_foto, "."))
+        break
 
 hidden_imports = [
     "babel.numbers",
@@ -41,7 +54,7 @@ a = Analysis(
     [os.path.join(ROOT_DIR, "main.py")],
     pathex=[ROOT_DIR],
     binaries=[],
-    datas=[(LOGO_PATH, ".")],
+    datas=datas_empaquetado,
     hiddenimports=hidden_imports,
     hookspath=[],
     hooksconfig={},
